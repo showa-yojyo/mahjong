@@ -10,6 +10,7 @@ Grossary:
 """
 
 from collections import Counter
+from itertools import combinations_with_replacement
 
 _bad_numbers = {-1, 0, 10, 11}
 
@@ -54,19 +55,6 @@ def resolve_waiting_4(tiles):
     >>> resolve_waiting_4([9] * 4) == (1, {7, 8})
     True
 
-    >>> resolve_waiting_4([4, 4, 4, 5]) == (0, {3, 6, 5})
-    True
-    >>> resolve_waiting_4([4, 5, 5, 5]) == (0, {3, 6, 4})
-    True
-    >>> resolve_waiting_4([1, 1, 1, 2]) == (0, {2, 3})
-    True
-    >>> resolve_waiting_4([1, 2, 2, 2]) == (0, {1, 3})
-    True
-    >>> resolve_waiting_4([8, 8, 8, 9]) == (0, {7, 9})
-    True
-    >>> resolve_waiting_4([8, 9, 9, 9]) == (0, {7, 8})
-    True
-
     Two different pairs:
 
     >>> resolve_waiting_4([1, 1, 2, 2]) == (0, {1, 2})
@@ -97,18 +85,11 @@ def resolve_waiting_4(tiles):
 
     if ntype == 2:
         # On tempai
-
         if set(bag.values()) == {3, 1}:
-            _, second = bag.most_common(ntype)
-            # case 1: A Pong and a single
-            waiting_tiles = {second[0]}
-            # case 2: Two pairs
-            waiting_tiles |= _resolve_waiting_for_chow(*bag.keys())
-        else:
-            # A double-Pong waiting
-            waiting_tiles = set(bag.keys())
+            return resolve_waiting_aaab(tiles, bag)
 
-        return (0, waiting_tiles)
+        # A double-Pong waiting
+        return (0, set(bag.keys()))
 
     if ntype == 3:
         # AABC pattern
@@ -127,6 +108,45 @@ def resolve_waiting_4(tiles):
 
     # ABCD pattern
     return resolve_waiting_abcd(tiles)
+
+
+def resolve_waiting_aaab(tiles, bag=None):
+    """Resolve whether multiple or single waiting.
+
+    >>> resolve_waiting_aaab([4, 4, 4, 5]) == (0, {3, 6, 5})
+    True
+    >>> resolve_waiting_aaab([4, 5, 5, 5]) == (0, {3, 6, 4})
+    True
+    >>> resolve_waiting_aaab([1, 1, 1, 2]) == (0, {2, 3})
+    True
+    >>> resolve_waiting_aaab([1, 2, 2, 2]) == (0, {1, 3})
+    True
+    >>> resolve_waiting_aaab([8, 8, 8, 9]) == (0, {7, 9})
+    True
+    >>> resolve_waiting_aaab([8, 9, 9, 9]) == (0, {7, 8})
+    True
+    >>> resolve_waiting_aaab([1, 1, 1, 9]) == (1, {9})
+    True
+    >>> resolve_waiting_aaab([2, 8, 8, 8]) == (1, {2})
+    True
+    """
+
+    assert len(tiles) == 4
+
+    if not bag:
+        bag = Counter(tiles)
+
+    _, second = bag.most_common(2)
+    # case 1: A single wait and a Pong
+    waiting_tiles = {second[0]}
+
+    # case 2: Two pairs?
+    waiting_tiles_serial = _resolve_waiting_for_chow(*bag.keys())
+    if waiting_tiles_serial:
+        waiting_tiles |= waiting_tiles_serial
+        return (0, waiting_tiles)
+
+    return (1, waiting_tiles)
 
 
 def resolve_waiting_abcd(tiles):
@@ -238,3 +258,20 @@ def _resolve_waiting_for_chow(nlower, nupper):
         return {nlower + 1}
     else:
         return None
+
+
+def make_resolver_table_4():
+    """Construct the look-up table for 4 numbered tiles"""
+
+    return {
+        tiles: resolve_waiting_4(tiles)
+        for tiles in combinations_with_replacement(range(1, 10), 4)}
+
+
+def resolve_waiting_7(tiles):
+    """Resolve all waiting tiles of seven numbered tiles.
+
+    ``tiles`` must be an ordered sequence.
+    """
+
+    assert len(tiles) == 7
