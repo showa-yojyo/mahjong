@@ -285,38 +285,6 @@ def list_tiles_md(file=sys.stdout):
         print(f'| U+{code:05X} | {char} | {name} |', file=file)
 
 
-def _define_tile_classes():
-    """Define classes of Mahjong tiles
-
-    >>> east = TileEastWind; east
-    <class 'tiles.TileEastWind'>
-    >>> east() == east()
-    True
-    >>> ord(east()) == 0x1F000
-    True
-    """
-
-    # class factory
-    class MahjongTile(str):
-        __slots__ = ()
-
-    for code in TILE_RANGE:
-        char = chr(code)
-        # MAHJONG TILE XXXX YYYY -> TileXxxxYyyy
-        classname = unicodedata.name(char)[7:].title().replace(" ", "")
-        newfunc = (lambda char: lambda subclass: MahjongTile.__new__(
-            subclass, char))(char)
-        newfunc.__name__ = "__new__"
-        tile_type = type(
-            classname, (MahjongTile,), dict(
-                __slots__=(),
-                __new__=newfunc))
-        globals()[classname] = tile_type
-
-
-_define_tile_classes()
-
-
 def _init_sortkey_map():
     """Return the mapping for sorting tiles"""
 
@@ -327,8 +295,7 @@ def _init_sortkey_map():
             TILE_RANGE_CHARACTERS, TILE_RANGE_CIRCLES,
             TILE_RANGE_BAMBOOS, TILE_RANGE_WINDS,
             reversed(TILE_RANGE_DRAGONS)):
-        char = chr(code)
-        sortkey_map[char] = key
+        sortkey_map[code] = key
         key += 1
     return sortkey_map
 
@@ -339,17 +306,17 @@ SORTKEY_MAP = _init_sortkey_map()
 def sort_tiles(tilelist):
     """Sort a list that contains tiles
 
-    >>> SORTKEY_MAP['🀆']
+    >>> SORTKEY_MAP[TILE_WHITE_DRAGON]
     32
-    >>> SORTKEY_MAP['🀅']
+    >>> SORTKEY_MAP[TILE_GREEN_DRAGON]
     33
-    >>> SORTKEY_MAP['🀄']
+    >>> SORTKEY_MAP[TILE_RED_DRAGON]
     34
 
-    >>> L = ['🀄', '🀙', '🀀', '🀅', '🀐', '🀆', '🀇']
+    >>> L = [TILE_RED_DRAGON, TILE_ONE_OF_CIRCLES, TILE_EAST_WIND, TILE_GREEN_DRAGON, TILE_ONE_OF_BAMBOOS, TILE_WHITE_DRAGON, TILE_ONE_OF_CHARACTERS]
     >>> sort_tiles(L)
-    >>> L
-    ['🀇', '🀙', '🀐', '🀀', '🀆', '🀅', '🀄']
+    >>> L == [TILE_ONE_OF_CHARACTERS, TILE_ONE_OF_CIRCLES, TILE_ONE_OF_BAMBOOS, TILE_EAST_WIND, TILE_WHITE_DRAGON, TILE_GREEN_DRAGON, TILE_RED_DRAGON]
+    True
     """
 
     tilelist.sort(key=lambda t: SORTKEY_MAP[t])

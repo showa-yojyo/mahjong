@@ -9,6 +9,8 @@ from enum import Enum, auto
 from itertools import chain, combinations
 from random import sample
 
+import tiles
+
 # the 36 tiles of the same suit
 _tiles36 = tuple(chain.from_iterable(range(1, 10) for _ in range(4)))
 
@@ -334,6 +336,43 @@ def resolve_melds_seven_pairs(player_hand):
 
 # Features for Thirteen Orphans
 
+_thirteen_orphans = Counter(
+    chain(tiles.TILE_RANGE_HONORS, tiles.TILE_TERMINALS))
+
+_thirteen_orphans_value_filter = Counter(
+    {tile: 4 for tile in _thirteen_orphans})
+
 def resolve_melds_thirteen_orphans(player_hand):
     """Resolve all the waiting tiles as Thirteen Orphans.
+
+    >>> hand = _thirteen_orphans
+    >>> shanten, waiting_tiles = resolve_melds_thirteen_orphans(hand)
+    >>> shanten
+    0
+    >>> all(tiles.is_honor(t) or tiles.is_terminal(t) for t in waiting_tiles)
+    True
+    >>> len(waiting_tiles)
+    13
+
+    >>> hand = _thirteen_orphans.copy()
+    >>> hand.subtract(tiles.TILE_RANGE_WINDS)
+    >>> hand.update((tiles.TILE_ONE_OF_BAMBOOS,))
+    >>> shanten, waiting_tiles = resolve_melds_thirteen_orphans(hand)
+    >>> shanten
+    3
+    >>> all(lhs == rhs for lhs, rhs in zip(
+    ...     waiting_tiles, tuple(tiles.TILE_RANGE_WINDS)))
+    True
     """
+
+    assert isinstance(player_hand, Counter)
+
+    terms_or_honors = _thirteen_orphans_value_filter & player_hand
+    waiting_tiles = _thirteen_orphans - terms_or_honors
+    if any(dup > 1 for dup in terms_or_honors.values()):
+        # Thirteen Orphans of a single wait
+        return (len(waiting_tiles) - 1, tuple(waiting_tiles.elements()))
+
+    # Thirteen Orphans of the 13 wait
+    return (len(waiting_tiles), tuple(terms_or_honors))
+
