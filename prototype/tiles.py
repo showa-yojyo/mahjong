@@ -313,9 +313,13 @@ def sort_tiles(tilelist):
     >>> SORTKEY_MAP[TILE_RED_DRAGON]
     34
 
-    >>> L = [TILE_RED_DRAGON, TILE_ONE_OF_CIRCLES, TILE_EAST_WIND, TILE_GREEN_DRAGON, TILE_ONE_OF_BAMBOOS, TILE_WHITE_DRAGON, TILE_ONE_OF_CHARACTERS]
+    >>> L = [TILE_RED_DRAGON, TILE_ONE_OF_CIRCLES, TILE_EAST_WIND,
+    ...      TILE_GREEN_DRAGON, TILE_ONE_OF_BAMBOOS, TILE_WHITE_DRAGON,
+    ...      TILE_ONE_OF_CHARACTERS]
     >>> sort_tiles(L)
-    >>> L == [TILE_ONE_OF_CHARACTERS, TILE_ONE_OF_CIRCLES, TILE_ONE_OF_BAMBOOS, TILE_EAST_WIND, TILE_WHITE_DRAGON, TILE_GREEN_DRAGON, TILE_RED_DRAGON]
+    >>> L == [TILE_ONE_OF_CHARACTERS, TILE_ONE_OF_CIRCLES, TILE_ONE_OF_BAMBOOS,
+    ...       TILE_EAST_WIND, TILE_WHITE_DRAGON, TILE_GREEN_DRAGON,
+    ...       TILE_RED_DRAGON]
     True
     """
 
@@ -323,61 +327,47 @@ def sort_tiles(tilelist):
 
 
 TILE_SUCC_MAP = {
-    '\N{MAHJONG TILE NORTH WIND}': '\N{MAHJONG TILE EAST WIND}',
-    '\N{MAHJONG TILE WHITE DRAGON}': '\N{MAHJONG TILE GREEN DRAGON}',
-    '\N{MAHJONG TILE GREEN DRAGON}': '\N{MAHJONG TILE RED DRAGON}',
-    '\N{MAHJONG TILE RED DRAGON}': '\N{MAHJONG TILE WHITE DRAGON}',
-    '\N{MAHJONG TILE NINE OF CHARACTERS}': '\N{MAHJONG TILE ONE OF CHARACTERS}',
-    '\N{MAHJONG TILE NINE OF BAMBOOS}': '\N{MAHJONG TILE ONE OF BAMBOOS}',
-    '\N{MAHJONG TILE NINE OF CIRCLES}': '\N{MAHJONG TILE ONE OF CIRCLES}',
+    TILE_NORTH_WIND: TILE_EAST_WIND,
+    TILE_WHITE_DRAGON: TILE_GREEN_DRAGON,
+    TILE_GREEN_DRAGON: TILE_RED_DRAGON,
+    TILE_RED_DRAGON: TILE_WHITE_DRAGON,
+    TILE_NINE_OF_CHARACTERS: TILE_ONE_OF_CHARACTERS,
+    TILE_NINE_OF_BAMBOOS: TILE_ONE_OF_BAMBOOS,
+    TILE_NINE_OF_CIRCLES: TILE_ONE_OF_CIRCLES,
 }
 
 TILE_PREC_MAP = {TILE_SUCC_MAP[_k]: _k for _k in TILE_SUCC_MAP}
 
 
-def successor(tile):
+def successor(tile_id):
     """Return the dora tile from dora indicator tile.
 
     If the dora indicator is a suit tile, the dora is the next tile in the
     same suit, e.g. seven bamboo is dora if six bamboo is the dora indicator.
 
-    >>> successor('\N{MAHJONG TILE SIX OF BAMBOOS}')
-    '\N{MAHJONG TILE SEVEN OF BAMBOOS}'
+    >>> assert successor(TILE_SIX_OF_BAMBOOS) == TILE_SEVEN_OF_BAMBOOS
 
     If the indicator is a nine, the dora is the one in the same suit.
 
-    >>> successor('\N{MAHJONG TILE NINE OF CHARACTERS}')
-    '\N{MAHJONG TILE ONE OF CHARACTERS}'
-    >>> successor('\N{MAHJONG TILE NINE OF CIRCLES}')
-    '\N{MAHJONG TILE ONE OF CIRCLES}'
-    >>> successor('\N{MAHJONG TILE NINE OF BAMBOOS}')
-    '\N{MAHJONG TILE ONE OF BAMBOOS}'
+    >>> assert successor(TILE_NINE_OF_CHARACTERS) == TILE_ONE_OF_CHARACTERS
+    >>> assert successor(TILE_NINE_OF_CIRCLES) == TILE_ONE_OF_CIRCLES
+    >>> assert successor(TILE_NINE_OF_BAMBOOS) == TILE_ONE_OF_BAMBOOS
 
     If the indicator is a dragon, the dora is also a dragon, and the following
     order applies: red points to white, white points to green and green points
     to red.
 
-    >>> successor('\N{MAHJONG TILE WHITE DRAGON}')
-    '\N{MAHJONG TILE GREEN DRAGON}'
-    >>> successor('\N{MAHJONG TILE GREEN DRAGON}')
-    '\N{MAHJONG TILE RED DRAGON}'
-    >>> successor('\N{MAHJONG TILE RED DRAGON}')
-    '\N{MAHJONG TILE WHITE DRAGON}'
+    >>> assert successor(TILE_WHITE_DRAGON) == TILE_GREEN_DRAGON
+    >>> assert successor(TILE_GREEN_DRAGON) == TILE_RED_DRAGON
+    >>> assert successor(TILE_RED_DRAGON) == TILE_WHITE_DRAGON
 
-    For winds, likewise, the following order applies:
+    For Winds, likewise, the following order applies:
     east-south-west-north-east.
 
-    >>> successor('\N{MAHJONG TILE EAST WIND}')
-    '\N{MAHJONG TILE SOUTH WIND}'
-    >>> successor('\N{MAHJONG TILE SOUTH WIND}')
-    '\N{MAHJONG TILE WEST WIND}'
-    >>> successor('\N{MAHJONG TILE WEST WIND}')
-    '\N{MAHJONG TILE NORTH WIND}'
-    >>> successor('\N{MAHJONG TILE NORTH WIND}')
-    '\N{MAHJONG TILE EAST WIND}'
+    >>> assert successor(TILE_EAST_WIND) == TILE_SOUTH_WIND
+    >>> assert successor(TILE_SOUTH_WIND) == TILE_WEST_WIND
+    >>> assert successor(TILE_WEST_WIND) == TILE_NORTH_WIND
+    >>> assert successor(TILE_NORTH_WIND) == TILE_EAST_WIND
     """
 
-    if isinstance(tile, int):
-        tile = chr(tile)
-
-    return TILE_SUCC_MAP.get(tile, chr(ord(tile) + 1))
+    return TILE_SUCC_MAP.get(tile_id, tile_id + 1)
