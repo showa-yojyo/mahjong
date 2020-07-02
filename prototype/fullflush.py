@@ -11,14 +11,19 @@ import sys
 
 DUPLICATE = 4
 
-@lru_cache
+@lru_cache(maxsize=7)
 def count_menchin_cases(num):
-    """
-    >>> assert count_menchin_cases(0) == [Counter({1: 1})]
-    >>> assert count_menchin_cases(1) == [Counter({1: 1})]
-    >>> assert count_menchin_cases(2) == [Counter({1: 2}), Counter({2: 1})]
+    r"""Count the number of combinations :math:`(n_1, \dotsc, n_9)`, where
+    :math:`\sum n_i = 13` and :math:`n_i \le 4`.
+
+    >>> count_menchin_cases(0)
+    [Counter({1: 1})]
+    >>> count_menchin_cases(1)
+    [Counter({1: 1})]
+    >>> count_menchin_cases(2)
+    [Counter({1: 2}), Counter({2: 1})]
     >>> count_menchin_cases(3)
-    [Counter({1: 2, 2: 1}), Counter({1: 3}), Couner({3: 1})]
+    [Counter({1: 3}), Counter({1: 1, 2: 1}), Counter({3: 1})]
     """
 
     if num in (0, 1):
