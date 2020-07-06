@@ -3,6 +3,7 @@ mahjong.tiles
 
 """
 
+from collections import Counter
 import itertools
 import sys
 import unicodedata
@@ -371,3 +372,14 @@ def successor(tile_id):
     """
 
     return TILE_SUCC_MAP.get(tile_id, tile_id + 1)
+
+# Suits
+
+def convert_numbers(counter: Counter, first: int) -> Counter:
+    """Convert a counter of tiles of a suit to of 0-9s.
+    """
+
+    if all(first <= k <= first + 9 for k in counter):
+        return Counter({k - first + 1: counter[k] for k in counter})
+
+    raise KeyError
