@@ -5,13 +5,12 @@ PROTOTYPE
 """
 
 from collections import Counter
-from enum import Enum, auto
+from enum import Enum
 from itertools import chain, combinations, repeat
 from random import sample
 from typing import Sequence, Tuple, Union
 
 import tiles
-from testdata import WINNING_HAND_EXAMPLE1
 
 # Filters
 def _create_filter(tile_range):
@@ -30,7 +29,7 @@ FILTER_BAMBOOS = _create_filter(tiles.TILE_RANGE_BAMBOOS)
 def classify(player_hand: Counter) -> Tuple[Counter]:
     """Classify tiles by types
 
-    >>> m, p, s, w, d = classify(WINNING_HAND_EXAMPLE1)
+    >>> m, p, s, w, d = classify(tiles.tiles('1112345678999m'))
     >>> all(tiles.is_character(t) for t in m)
     True
     >>> all(tiles.is_circles(t) for t in p)
@@ -228,6 +227,15 @@ def get_pair_type(pair: Union[Sequence[int], Counter]) -> TileTupleType:
         return TileTupleType.SEPARATED_SERIAL_PAIR
 
     raise ValueError
+
+
+def get_incomplete_melds(player_hand: Counter):
+    """Return all the incomplete melds, i.e. pairs that can form a meld.
+    """
+
+    # Eyes
+    for eye in _all_eyes:
+        pass
 
 
 def construct_tempai_4():
