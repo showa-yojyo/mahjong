@@ -5,7 +5,9 @@ mahjong.tiles
 
 from collections import Counter
 import itertools
+import re
 import sys
+from typing import Tuple, Union
 import unicodedata
 
 # | コード | 牌画 | `unicodedata.name` |
@@ -271,6 +273,57 @@ def is_simple(tile_id):
     """
 
     return is_suit(tile_id) and not is_terminal(tile_id)
+
+_honor_table = {
+    '東': TILE_EAST_WIND,
+    '南': TILE_SOUTH_WIND,
+    '西': TILE_WEST_WIND,
+    '北': TILE_NORTH_WIND,
+    '白': TILE_WHITE_DRAGON,
+    '発': TILE_GREEN_DRAGON,
+    '中': TILE_RED_DRAGON,}
+
+
+def tiles(pattern: str) -> Union[int, Tuple]:
+    """Transform a string into tile instances.
+
+    >>> tiles('5s') == TILE_FIVE_OF_BAMBOOS
+    True
+    >>> tiles('東') == TILE_EAST_WIND
+    True
+
+    >>> my_hand = Counter(tiles('3899m3457p88s南白発'))
+    >>> my_hand[TILE_NINE_OF_CHARACTERS]
+    2
+    >>> my_hand[TILE_SOUTH_WIND]
+    1
+    """
+
+    result = []
+
+    re_m = r'([0-9]+)m'
+    re_p = r'([0-9]+)p'
+    re_s = r'([0-9]+)s'
+    re_honors = r'[東南西北白発中]'
+
+    def _tiles_suit(regex, baseid):
+        if matched := re.search(regex, pattern):
+            return [baseid + int(i) - 1 for i in matched[1]]
+        return ()
+
+    result.extend(_tiles_suit(re_m, TILE_ONE_OF_CHARACTERS))
+    result.extend(_tiles_suit(re_p, TILE_ONE_OF_CIRCLES))
+    result.extend(_tiles_suit(re_s, TILE_ONE_OF_BAMBOOS))
+
+    for group in re.findall(re_honors, pattern):
+        result.extend(_honor_table[honor] for honor in group)
+
+    if len(result) <= 1:
+        if not result:
+            return ()
+        return result[0]
+
+    return tuple(result)
 
 
 def list_tiles_md(file=sys.stdout):
