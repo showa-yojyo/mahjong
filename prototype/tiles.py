@@ -7,7 +7,7 @@ from collections import Counter
 import itertools
 import re
 import sys
-from typing import Tuple, Union
+from typing import Iterable, List, Tuple, Union
 import unicodedata
 
 # | コード | 牌画 | `unicodedata.name` |
@@ -105,7 +105,7 @@ def _define_instances():
 _define_instances()
 
 
-def get_name(*, tile_id=None, name=None):
+def get_name(*, tile_id=None, name=None) -> str:
     """Return unicodedata.name associated with ``tile``
 
     >>> get_name(tile_id=TILE_EAST_WIND)
@@ -124,7 +124,7 @@ def get_name(*, tile_id=None, name=None):
     return None
 
 
-def get_id(*, tile_id=None, name=None):
+def get_id(*, tile_id=None, name=None) -> int:
     """Return the ID of a tile.
 
     >>> tile = get_id(name='MAHJONG TILE EAST WIND')
@@ -141,7 +141,7 @@ def get_id(*, tile_id=None, name=None):
     return None
 
 
-def is_honor(tile_id):
+def is_honor(tile_id: int) -> bool:
     """Test if a tile is a Honor
 
     >>> all(is_honor(i) for i in TILE_RANGE_WINDS)
@@ -155,7 +155,7 @@ def is_honor(tile_id):
     return tile_id in TILE_RANGE_HONORS
 
 
-def is_wind(tile_id):
+def is_wind(tile_id: int) -> bool:
     """Test if a tile is a Wind
 
     >>> all(is_wind(i) for i in TILE_RANGE_WINDS)
@@ -169,7 +169,7 @@ def is_wind(tile_id):
     return tile_id in TILE_RANGE_WINDS
 
 
-def is_dragon(tile_id):
+def is_dragon(tile_id: int) -> bool:
     """Test if a tile is a Dragon
 
     >>> any(is_dragon(i) for i in TILE_RANGE_WINDS)
@@ -183,7 +183,7 @@ def is_dragon(tile_id):
     return tile_id in TILE_RANGE_DRAGONS
 
 
-def is_suit(tile_id):
+def is_suit(tile_id: int) -> bool:
     """Test if a tile is a Suit
 
     >>> any(is_suit(i) for i in TILE_RANGE_WINDS)
@@ -201,7 +201,7 @@ def is_suit(tile_id):
     return tile_id in TILE_RANGE_SUITS
 
 
-def is_character(tile_id):
+def is_character(tile_id: int) -> bool:
     """Test if a tile is a Character
 
     >>> any(is_character(i) for i in TILE_RANGE_WINDS)
@@ -219,7 +219,7 @@ def is_character(tile_id):
     return tile_id in TILE_RANGE_CHARACTERS
 
 
-def is_circle(tile_id):
+def is_circle(tile_id: int) -> bool:
     """Test if a tile is a Circle
 
     >>> any(is_circle(i) for i in TILE_RANGE_WINDS)
@@ -237,7 +237,7 @@ def is_circle(tile_id):
     return tile_id in TILE_RANGE_CIRCLES
 
 
-def is_bamboo(tile_id):
+def is_bamboo(tile_id: int) -> bool:
     """Test if a tile is a Bamboo
 
     >>> any(is_bamboo(i) for i in TILE_RANGE_WINDS)
@@ -255,7 +255,7 @@ def is_bamboo(tile_id):
     return tile_id in TILE_RANGE_BAMBOOS
 
 
-def is_terminal(tile_id):
+def is_terminal(tile_id: int) -> bool:
     """Test is a tile is a Terminal, i.e. One or Nine.
 
     >>> [is_terminal(i) for i in TILE_RANGE_CHARACTERS]
@@ -265,7 +265,7 @@ def is_terminal(tile_id):
     return tile_id in TILE_TERMINALS
 
 
-def is_simple(tile_id):
+def is_simple(tile_id: int) -> bool:
     """Test if a tile is not Terminal and not Honor
 
     >>> [is_simple(i) for i in TILE_RANGE_CHARACTERS]
@@ -357,7 +357,7 @@ def _init_sortkey_map():
 SORTKEY_MAP = _init_sortkey_map()
 
 
-def sort_tiles(tilelist):
+def sort_tiles(tilelist: List[int]):
     """Sort a list that contains tiles
 
     >>> SORTKEY_MAP[TILE_WHITE_DRAGON]
@@ -393,7 +393,7 @@ TILE_SUCC_MAP = {
 TILE_PREC_MAP = {TILE_SUCC_MAP[_k]: _k for _k in TILE_SUCC_MAP}
 
 
-def successor(tile_id):
+def successor(tile_id: int) -> int:
     """Return the dora tile from dora indicator tile.
 
     If the dora indicator is a suit tile, the dora is the next tile in the
@@ -428,11 +428,49 @@ def successor(tile_id):
 
 # Suits
 
-def convert_numbers(counter: Counter, first: int) -> Counter:
+def convert_suit_to_number(player_hand: Union[Counter, Iterable]) -> Counter:
     """Convert a counter of tiles of a suit to of 0-9s.
+
+    >>> convert_suit_to_number([])
+    Counter()
+
+    >>> characters = convert_suit_to_number(tiles('3899m'))
+    >>> sorted(characters.elements())
+    [3, 8, 9, 9]
+
+    >>> circles = convert_suit_to_number(tiles('3457p'))
+    >>> sorted(circles.elements())
+    [3, 4, 5, 7]
+
+    >>> bamboos = convert_suit_to_number(tiles('88s'))
+    >>> sorted(bamboos.elements())
+    [8, 8]
+
+    >>> convert_suit_to_number(tiles('南南南'))
+    Traceback (most recent call last):
+        ...
+    ValueError
     """
 
-    if all(first <= k <= first + 9 for k in counter):
-        return Counter({k - first + 1: counter[k] for k in counter})
+    if isinstance(player_hand, Counter):
+        source = player_hand
+    else:
+        source = Counter(player_hand)
 
-    raise KeyError
+    if not source:
+        return source
+
+    id = source.most_common(1)[0][0]
+    if id in TILE_RANGE_CHARACTERS:
+        first = TILE_ONE_OF_CHARACTERS
+    elif id in TILE_RANGE_CIRCLES:
+        first = TILE_ONE_OF_CIRCLES
+    elif id in TILE_RANGE_BAMBOOS:
+        first = TILE_ONE_OF_BAMBOOS
+    else:
+        raise ValueError
+
+    if all(first <= k <= first + 9 for k in source):
+        return Counter({k - first + 1: source[k] for k in source})
+
+    raise ValueError
