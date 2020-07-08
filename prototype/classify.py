@@ -74,6 +74,7 @@ def random_flush_hand(num=13):
 class TileTupleType(Enum):
     """Types of a tuple of tiles"""
 
+    NONE = '無関係'
     ORPHAN = '孤立牌'
     SIMPLE_PAIR = '対子'
     SERIAL_PAIR = '両面搭子'
@@ -88,21 +89,14 @@ def _generate_all_pairs_suit():
     """
 
     for i in range(1, 10):
-        yield (Counter((i, i)), TileTupleType.SIMPLE_PAIR)
+        yield Counter((i, i))
         if i < 9:
-            if i in (1, 8):
-                yield (Counter((i, i + 1)), TileTupleType.TERMINAL_SERIAL_PAIR)
-            else:
-                yield (Counter((i, i + 1)), TileTupleType.SERIAL_PAIR)
+            yield Counter((i, i + 1))
         if i < 8:
-            yield (Counter((i, i + 2)), TileTupleType.SEPARATED_SERIAL_PAIR)
+            yield Counter((i, i + 2))
 
 _all_pairs_suit = tuple(_generate_all_pairs_suit())
-_all_pairs_honor = tuple((Counter({i: 2}), TileTupleType.SIMPLE_PAIR)
-                          for i in tiles.TILE_RANGE_HONORS)
-_all_eyes = tuple(pair for pair, pair_type in _all_pairs_suit
-                  if pair_type == TileTupleType.SIMPLE_PAIR)
-
+_all_pairs_honor = tuple(Counter({i: 2}) for i in tiles.TILE_RANGE_HONORS)
 
 class Pong:
     """A Pong."""
@@ -165,58 +159,21 @@ _all_melds_suit = tuple(_generate_all_melds_suit())
 _all_melds_honor = tuple(Counter({i: 3}) for i in tiles.TILE_RANGE_HONORS)
 
 
-def classify_suit_tiles(tiles):
-    """Classify numbered tiles
-
-    ``tiles`` must be an ordered sequence.
-    """
-
-    assert tiles
-    work_tiles = tiles[:]
-
-    if (ntile := len(work_tiles)) == 1:
-        return {TileTupleType.ORPHAN: (work_tiles[0],)}
-
-    if ntile == 2:
-        return {get_pair_type(work_tiles): work_tiles}
-
-    # sequence of differences of tiles
-    seq_diff = [tiles[i + 1] - tiles[i] for i in range(ntile - 2)]
-
-    if ntile == 3:
-        assert len(seq_diff) == 2
-        if not any(seq_diff):
-            # 00
-            return {TileTupleType.PONG: work_tiles}
-        if seq_diff.count(1) == 2:
-            # 11
-            return {TileTupleType.CHOW: work_tiles}
-
-        # Classify a pair and a single tile.
-        type_front = get_pair_type(work_tiles[:2])
-        type_back = get_pair_type(work_tiles[1:])
-
-        if type_front == type_back == TileTupleType.ORPHAN:
-            return {TileTupleType.ORPHAN: work_tiles}
-
-        return {
-            {
-                type_front: work_tiles[:2],
-                TileTupleType.ORPHAN: work_tiles[-1],
-            },
-            {
-                TileTupleType.ORPHAN: work_tiles[0],
-                type_back: work_tiles[1:],
-            },}
-
-
 def get_pair_type(pair: Union[Sequence[int], Counter]) -> TileTupleType:
     """Identify the type of given pair.
 
+    One of the pair must be the same Suit or Honor as the other.
+
     >>> print(get_pair_type((4, 4)).value)
     対子
+    >>> print(get_pair_type(tiles.tiles('東東')).value)
+    対子
+
     >>> print(get_pair_type((3, 4)).value)
     両面搭子
+    >>> print(get_pair_type(tiles.tiles('東南')).value)
+    無関係
+
     >>> print(get_pair_type((7, 9)).value)
     嵌張搭子
     >>> print(get_pair_type((1, 2)).value)
@@ -233,10 +190,14 @@ def get_pair_type(pair: Union[Sequence[int], Counter]) -> TileTupleType:
         lower, upper = min(pair), max(pair)
 
     diff = upper - lower
-
     if diff == 0:
         # 対子
         return TileTupleType.SIMPLE_PAIR
+
+    if tiles.is_honor(lower) or tiles.is_honor(upper):
+        return TileTupleType.NONE
+
+
     if diff == 1:
         if lower == 1 or upper == 9:
             # 辺張
@@ -247,7 +208,42 @@ def get_pair_type(pair: Union[Sequence[int], Counter]) -> TileTupleType:
         # 嵌張
         return TileTupleType.SEPARATED_SERIAL_PAIR
 
-    raise ValueError
+    return TileTupleType.NONE
+
+
+def get_meld_type(meld: Union[Sequence[int], Counter]) -> TileTupleType:
+    """Identify the type of a meld.
+
+    One of the pair must be the same Suit or Honor as the other.
+
+    >>> print(get_meld_type((1, 1, 1)).value)
+    刻子
+    >>> print(get_meld_type(_all_melds_suit[-1]).value)
+    刻子
+    >>> print(get_meld_type(_all_melds_honor[-1]).value)
+    刻子
+    >>> print(get_meld_type((1, 2, 3)).value)
+    順子
+    >>> print(get_meld_type(_all_melds_suit[1]).value)
+    順子
+    >>> print(get_meld_type((1, 4, 9)).value)
+    無関係
+    """
+
+    if isinstance(meld, Counter):
+        meld = sorted(meld.elements())
+
+    if any(tiles.is_honor(i) for i in meld):
+        if any(tiles.is_suit(i) for i in meld):
+            return TileTupleType.NONE
+
+    if all(meld[0] == i for i in meld):
+        return TileTupleType.PONG
+
+    if meld[2] - meld[1] == meld[1] - meld[0] == 1:
+        return TileTupleType.CHOW
+
+    return TileTupleType.NONE
 
 
 def remove_melds(player_hand: Counter, all_melds: Tuple) -> Tuple[Counter]:
@@ -267,13 +263,18 @@ def remove_melds(player_hand: Counter, all_melds: Tuple) -> Tuple[Counter]:
     (Counter({1: 1, 2: 1, 3: 1}), Counter({1: 1, 2: 1, 3: 1}))
     """
 
-    remains = player_hand
+    remains = sum(player_hand.values())
     melds = []
     for meld in all_melds:
-        while remains & meld == meld:
-            remains -= meld
+        while player_hand & meld == meld:
+            player_hand -= meld
+            remains -= 3
             melds.append(meld)
+            if remains < 3:
+                break
 
+        if remains < 3:
+            break
 
     return tuple(melds)
 
@@ -291,12 +292,16 @@ def remove_pairs(player_hand: Counter, all_pairs: Tuple) -> Tuple[Counter]:
     (Counter({8: 2}),)
     """
 
-    remains = player_hand
+    remains = sum(player_hand.values())
     pairs = []
-    for pair, _ in all_pairs:
-        if remains & pair == pair:
-            remains -= pair
+    for pair in all_pairs:
+        if player_hand & pair == pair:
+            player_hand -= pair
+            remains -= 2
             pairs.append(pair)
+
+        if remains < 2:
+            break
 
     return tuple(pairs)
 
@@ -352,40 +357,6 @@ def count_shanten_std(player_hand: Union[Counter, Iterable]) -> int:
         pairs_m, pairs_p, pairs_s, pairs_h))
 
     return num_shanten
-
-
-def construct_tempai_4():
-    """Return all tempai of four tiles of the same suit."""
-
-    for i in range(1, 10):
-        yield from (Counter({i: 3, j: 1}) for j in range(1, 10) if j != i)
-    for chow in _all_chows:
-        yield from (chow + Counter({j: 1}) for j in range(1, 10))
-
-#for tempai in construct_tempai_4():
-#    print(tuple(tempai.elements()))
-
-
-class WaitingInfo:
-    def __init__(self):
-        self.melds = []
-        self.eyes = None
-        self.waiting_tiles = []
-        self.remain_tiles = None
-
-    def __str__(self):
-        return f'{self.eyes} {self.melds} {self.remain_tiles} {self.waiting_tiles}'
-
-    def set_eyes(self, tile):
-        self.eyes = [tile]*2
-
-    def set_single_wait(self, tile):
-        self.eyes = [tile]
-
-    @property
-    def shanten(self):
-        """Return the shanten number"""
-        return len(self.waiting_tiles)
 
 
 def get_possible_pongs(tile_counter):
