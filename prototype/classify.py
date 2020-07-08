@@ -259,14 +259,21 @@ def remove_melds(player_hand: Counter, all_melds: Tuple) -> Tuple[Counter]:
     (Counter({3: 1, 4: 1, 5: 1}),)
     >>> remove_melds(Counter([8, 8]), _all_melds_suit)
     ()
+
+    If duplicate melds are contained in player's hand, all of them will be
+    removed from the hand.
+
+    >>> remove_melds(Counter([1, 1, 2, 2, 3, 3]), _all_melds_suit)
+    (Counter({1: 1, 2: 1, 3: 1}), Counter({1: 1, 2: 1, 3: 1}))
     """
 
     remains = player_hand
     melds = []
     for meld in all_melds:
-        if remains & meld == meld:
+        while remains & meld == meld:
             remains -= meld
             melds.append(meld)
+
 
     return tuple(melds)
 
@@ -308,6 +315,9 @@ def count_shanten_std(player_hand: Union[Counter, Iterable]) -> int:
     >>> count_shanten_std(tiles.tiles('88m23457p888s南発発'))
     1
 
+    >>> count_shanten_std(tiles.tiles('112233m258p39s西中'))
+    4
+
     >>> count_shanten_std(tiles.tiles('1112345678999s'))
     0
     """
@@ -315,16 +325,21 @@ def count_shanten_std(player_hand: Union[Counter, Iterable]) -> int:
     if not isinstance(player_hand, Counter):
         player_hand = Counter(player_hand)
 
+    if sum(player_hand.values()) != 13:
+        raise NotImplementedError
+
     part_m = player_hand & FILTER_CHARACTERS
     part_p = player_hand & FILTER_CIRCLES
     part_s = player_hand & FILTER_BAMBOOS
     part_m, part_p, part_s = (tiles.convert_suit_to_number(suit_part)
-               for suit_part in (part_m, part_p, part_s))
+                              for suit_part in (part_m, part_p, part_s))
 
     melds_m, melds_p, melds_s = (
-        remove_melds(suit_part, _all_melds_suit) for suit_part in (part_m, part_p, part_s))
+        remove_melds(suit_part, _all_melds_suit) for suit_part in (
+            part_m, part_p, part_s))
     pairs_m, pairs_p, pairs_s = (
-        remove_pairs(suit_part, _all_pairs_suit) for suit_part in (part_m, part_p, part_s))
+        remove_pairs(suit_part, _all_pairs_suit) for suit_part in (
+            part_m, part_p, part_s))
 
     hand_h = player_hand & FILTER_HONORS
     melds_h = remove_melds(hand_h, _all_melds_honor)
