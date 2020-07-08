@@ -8,7 +8,7 @@ from collections import Counter
 from enum import Enum
 from itertools import chain, combinations, repeat
 from random import sample
-from typing import Sequence, Tuple, Union
+from typing import Iterable, Sequence, Tuple, Union
 
 import tiles
 
@@ -83,15 +83,7 @@ class TileTupleType(Enum):
     PONG = '刻子'
     KONG = '槓子'
 
-_all_pongs = tuple(Counter((i, i, i,)) for i in range(1, 10))
-_all_chows = tuple(Counter((i, i + 1, i + 2,)) for i in range(1, 8))
-_all_chows_d = tuple(Counter({i: 2, i + 1: 2, i + 2: 2}) for i in range(1, 8))
-_all_chows_t = tuple(Counter({i: 3, i + 1: 3, i + 2: 3}) for i in range(1, 8))
-_all_chows_q = tuple(Counter({i: 4, i + 1: 4, i + 2: 4}) for i in range(1, 8))
-
-_all_melds = tuple(chain(_all_pongs, _all_chows))
-
-def _generate_all_pairs():
+def _generate_all_pairs_suit():
     """TODO: optimize
     """
 
@@ -105,17 +97,12 @@ def _generate_all_pairs():
         if i < 8:
             yield (Counter((i, i + 2)), TileTupleType.SEPARATED_SERIAL_PAIR)
 
-_all_pairs = tuple(_generate_all_pairs())
-_all_eyes = tuple(pair for pair, pair_type in _all_pairs
+_all_pairs_suit = tuple(_generate_all_pairs_suit())
+_all_pairs_honor = tuple((Counter({i: 2}), TileTupleType.SIMPLE_PAIR)
+                          for i in tiles.TILE_RANGE_HONORS)
+_all_eyes = tuple(pair for pair, pair_type in _all_pairs_suit
                   if pair_type == TileTupleType.SIMPLE_PAIR)
 
-
-def get_eyes(i):
-    """
-    >>> get_eyes(1)
-    Counter({1: 2})
-    """
-    return _all_eyes[i - 1]
 
 class Pong:
     """A Pong."""
@@ -155,6 +142,27 @@ class Chow:
         Counter({1: 1, 2: 1, 3: 1})
         """
         return _all_chows[self.first - 1]
+
+
+_all_pongs = tuple(Counter((i, i, i,)) for i in range(1, 10))
+_all_chows = tuple(Counter((i, i + 1, i + 2,)) for i in range(1, 8))
+_all_chows_d = tuple(Counter({i: 2, i + 1: 2, i + 2: 2}) for i in range(1, 8))
+_all_chows_t = tuple(Counter({i: 3, i + 1: 3, i + 2: 3}) for i in range(1, 8))
+_all_chows_q = tuple(Counter({i: 4, i + 1: 4, i + 2: 4}) for i in range(1, 8))
+
+
+def _generate_all_melds_suit():
+    """Generate 111, 123, 222, 234, 333, 345, ..., 777, 789, 888, 999.
+    """
+
+    for i in range(1, 10):
+        yield Counter({i: 3})
+        if i + 2 <= 9:
+            yield Counter([i, i + 1, i + 2])
+
+
+_all_melds_suit = tuple(_generate_all_melds_suit())
+_all_melds_honor = tuple(Counter({i: 3}) for i in tiles.TILE_RANGE_HONORS)
 
 
 def classify_suit_tiles(tiles):
@@ -205,7 +213,7 @@ def classify_suit_tiles(tiles):
 def get_pair_type(pair: Union[Sequence[int], Counter]) -> TileTupleType:
     """Identify the type of given pair.
 
-    >>> print(get_pair_type(get_eyes(4)).value)
+    >>> print(get_pair_type((4, 4)).value)
     対子
     >>> print(get_pair_type((3, 4)).value)
     両面搭子
@@ -242,20 +250,20 @@ def get_pair_type(pair: Union[Sequence[int], Counter]) -> TileTupleType:
     raise ValueError
 
 
-def remove_melds(player_hand: Counter) -> Tuple[Counter]:
+def remove_melds(player_hand: Counter, all_melds: Tuple) -> Tuple[Counter]:
     """Remove some melds from player's hand.
 
-    >>> remove_melds(Counter([3, 8, 9, 9]))
+    >>> remove_melds(Counter([3, 8, 9, 9]), _all_melds_suit)
     ()
-    >>> remove_melds(Counter([3, 4, 5, 7]))
+    >>> remove_melds(Counter([3, 4, 5, 7]), _all_melds_suit)
     (Counter({3: 1, 4: 1, 5: 1}),)
-    >>> remove_melds(Counter([8, 8]))
+    >>> remove_melds(Counter([8, 8]), _all_melds_suit)
     ()
     """
 
     remains = player_hand
     melds = []
-    for meld in _all_melds:
+    for meld in all_melds:
         if remains & meld == meld:
             remains -= meld
             melds.append(meld)
@@ -263,22 +271,22 @@ def remove_melds(player_hand: Counter) -> Tuple[Counter]:
     return tuple(melds)
 
 
-def remove_pairs(player_hand: Counter) -> Tuple[Counter]:
+def remove_pairs(player_hand: Counter, all_pairs: Tuple) -> Tuple[Counter]:
     """Remove some pairs as incomplete melds from player's hand.
 
-    >>> remove_pairs(Counter([3, 8, 9, 9]))
+    >>> remove_pairs(Counter([3, 8, 9, 9]), _all_pairs_suit)
     (Counter({8: 1, 9: 1}),)
 
-    >>> remove_pairs(Counter([7]))
+    >>> remove_pairs(Counter([7]), _all_pairs_suit)
     ()
 
-    >>> remove_pairs(Counter([8, 8]))
+    >>> remove_pairs(Counter([8, 8]), _all_pairs_suit)
     (Counter({8: 2}),)
     """
 
     remains = player_hand
     pairs = []
-    for pair, _ in _all_pairs:
+    for pair, _ in all_pairs:
         if remains & pair == pair:
             remains -= pair
             pairs.append(pair)
@@ -286,14 +294,26 @@ def remove_pairs(player_hand: Counter) -> Tuple[Counter]:
     return tuple(pairs)
 
 
-def count_shanten(player_hand: Counter) -> int:
-    """Count the shanten number of player's hand.
+def count_shanten_std(player_hand: Union[Counter, Iterable]) -> int:
+    """Count the shanten number of player's hand to 4-melds-1-pair form.
 
-    >>> count_shanten(Counter(tiles.tiles('3899m3457p88s南白発')))
+    >>> count_shanten_std(tiles.tiles('3899m3457p88s南白発'))
     4
-    >>> count_shanten(Counter(tiles.tiles('1112345678999s')))
+    >>> count_shanten_std(tiles.tiles('3899m3457p88s南発発'))
+    3
+    >>> count_shanten_std(tiles.tiles('389m3457p888s南発発'))
+    2
+    >>> count_shanten_std(tiles.tiles('89m23457p888s南発発'))
+    1
+    >>> count_shanten_std(tiles.tiles('88m23457p888s南発発'))
+    1
+
+    >>> count_shanten_std(tiles.tiles('1112345678999s'))
     0
     """
+
+    if not isinstance(player_hand, Counter):
+        player_hand = Counter(player_hand)
 
     part_m = player_hand & FILTER_CHARACTERS
     part_p = player_hand & FILTER_CIRCLES
@@ -302,13 +322,13 @@ def count_shanten(player_hand: Counter) -> int:
                for suit_part in (part_m, part_p, part_s))
 
     melds_m, melds_p, melds_s = (
-        remove_melds(suit_part) for suit_part in (part_m, part_p, part_s))
+        remove_melds(suit_part, _all_melds_suit) for suit_part in (part_m, part_p, part_s))
     pairs_m, pairs_p, pairs_s = (
-        remove_pairs(suit_part) for suit_part in (part_m, part_p, part_s))
+        remove_pairs(suit_part, _all_pairs_suit) for suit_part in (part_m, part_p, part_s))
 
     hand_h = player_hand & FILTER_HONORS
-    melds_h = remove_melds(hand_h)
-    pairs_h = remove_pairs(hand_h)
+    melds_h = remove_melds(hand_h, _all_melds_honor)
+    pairs_h = remove_pairs(hand_h, _all_pairs_honor)
 
     num_shanten = 8
     num_shanten -= sum(len(melds) for melds in (
@@ -351,25 +371,6 @@ class WaitingInfo:
     def shanten(self):
         """Return the shanten number"""
         return len(self.waiting_tiles)
-
-
-def decouple_eye(tiles):
-    """Decouple simple pairs from tiles
-
-    >>> g = decouple_eye([1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9])
-    >>> for pattern in g:
-    ...     print(pattern)
-    ...
-    (1, [1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9])
-    (9, [1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-
-    """
-
-    for i in range(1, 10):
-        counter = Counter(tiles)
-        if counter[i] >= 2:
-            counter[i] -= 2
-            yield i, list(counter.elements())
 
 
 def get_possible_pongs(tile_counter):
@@ -447,7 +448,7 @@ def resolve_melds_demo(player_hand: Counter):
     resolve_melds_single_wait(player_hand)
     for tile in player_hand:
         if player_hand[tile] >= 2:
-            eyes = get_eyes(tile)
+            eyes = Counter({tile: 2})
             resolve_melds_with_eyes(player_hand - eyes, eyes)
 
 # Features for seven pairs
@@ -529,17 +530,6 @@ def resolve_thirteen_orphans(player_hand):
     return (len(waiting_tiles), tuple(terms_or_honors))
 
 
-# 3899 | 3457 | 88 | 南白発 -- 4 シャンテン (789|2567|8|南白発)
-# 1 面子 2 対子 (1*2 + 1*2 = 4)
-# 3899 | 3457 | 88 | 南発発 -- 3 シャンテン (789|2567|8|南発)
-# 1 面子 3 対子 (1*2 + 3*1 = 5)
-# 389 | 3457 | 888 | 南発発 -- 2 シャンテン (789|2567|OK|南発)
-# 2 面子 1 対子 1 辺張 (2*2 + 1*2 = 6)
-# 89 | 23457 | 888 | 南発発 -- 1 シャンテン (789|134567|OK|南発)
-# 2 面子 1 対子 1 辺張 1 嵌張 1 孤立 (2*2 + 1*3 = 7)
-# 88 | 23457 | 888 | 南発発 -- 1 シャンテン (8|6|OK|発)
-# 2 面子 2 対子 1 嵌張 (2*2 + 2 + 1 = 7)
-
 # resolve_recursively(Counter([1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9]))
 def resolve_recursively(player_hand: Counter, melds_found=None):
     """WIP
@@ -557,7 +547,7 @@ def resolve_recursively(player_hand: Counter, melds_found=None):
         for meld in melds:
             print(tuple(meld.elements()), end=' ')
 
-    possible_melds = tuple(meld for meld in _all_melds if player_hand & meld == meld)
+    possible_melds = tuple(meld for meld in _all_melds_suit if player_hand & meld == meld)
     if not possible_melds:
         # 雀頭探し
         print(' '*depth, end='')

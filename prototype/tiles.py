@@ -274,6 +274,24 @@ def is_simple(tile_id: int) -> bool:
 
     return is_suit(tile_id) and not is_terminal(tile_id)
 
+
+def get_suit_number(tile_id: int) -> int:
+    """Return the number of a given tile.
+
+    >>> get_suit_number(TILE_ONE_OF_CHARACTERS)
+    1
+    >>> get_suit_number(TILE_TWO_OF_CIRCLES)
+    2
+    >>> get_suit_number(TILE_THREE_OF_BAMBOOS)
+    3
+    """
+
+    if not is_suit(tile_id):
+        raise ValueError(f'{tile_id} must be a Suit tile')
+
+    return TILE_RANGE_SUITS.index(tile_id) % 9 + 1
+
+
 _honor_table = {
     '東': TILE_EAST_WIND,
     '南': TILE_SOUTH_WIND,
