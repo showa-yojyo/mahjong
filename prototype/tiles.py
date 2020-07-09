@@ -537,3 +537,5 @@ def _generate_all_pairs_suit():
 
 PAIRS_NUMBER = tuple(_generate_all_pairs_suit())
 PAIRS_HONOR = tuple(Counter({i: 2}) for i in TILE_RANGE_HONORS)
+
+THIRTEEN_ORPHANS = Counter(chain(TILE_TERMINALS, TILE_RANGE_HONORS))

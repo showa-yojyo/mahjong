@@ -78,17 +78,17 @@ def count_shanten_std(player_hand: Union[Counter, Iterable]) -> int:
 def remove_melds(player_hand: Counter, all_melds: Tuple) -> Tuple[Counter]:
     """Remove some melds from player's hand.
 
-    >>> remove_melds(Counter([3, 8, 9, 9]), MELDS_NUMBER)
+    >>> remove_melds(Counter([3, 8, 9, 9]), tiles.MELDS_NUMBER)
     ()
-    >>> remove_melds(Counter([3, 4, 5, 7]), MELDS_NUMBER)
+    >>> remove_melds(Counter([3, 4, 5, 7]), tiles.MELDS_NUMBER)
     (Counter({3: 1, 4: 1, 5: 1}),)
-    >>> remove_melds(Counter([8, 8]), MELDS_NUMBER)
+    >>> remove_melds(Counter([8, 8]), tiles.MELDS_NUMBER)
     ()
 
     If duplicate melds are contained in player's hand, all of them will be
     removed from the hand.
 
-    >>> remove_melds(Counter([1, 1, 2, 2, 3, 3]), MELDS_NUMBER)
+    >>> remove_melds(Counter([1, 1, 2, 2, 3, 3]), tiles.MELDS_NUMBER)
     (Counter({1: 1, 2: 1, 3: 1}), Counter({1: 1, 2: 1, 3: 1}))
     """
 
@@ -111,16 +111,16 @@ def remove_melds(player_hand: Counter, all_melds: Tuple) -> Tuple[Counter]:
 def remove_pairs(player_hand: Counter, all_pairs: Tuple) -> Tuple[Counter]:
     """Remove some pairs as incomplete melds from player's hand.
 
-    >>> remove_pairs(Counter([3, 8, 9, 9]), _all_pairs_suit)
+    >>> remove_pairs(Counter([3, 8, 9, 9]), tiles.PAIRS_NUMBER)
     (Counter({8: 1, 9: 1}),)
 
-    >>> remove_pairs(Counter([7]), _all_pairs_suit)
+    >>> remove_pairs(Counter([7]), tiles.PAIRS_NUMBER)
     ()
 
-    >>> remove_pairs(Counter([8, 8]), _all_pairs_suit)
+    >>> remove_pairs(Counter([8, 8]), tiles.PAIRS_NUMBER)
     (Counter({8: 2}),)
 
-    >>> remove_pairs(Counter({5: 2, 6: 2}), _all_pairs_suit)
+    >>> remove_pairs(Counter({5: 2, 6: 2}), tiles.PAIRS_NUMBER)
     (Counter({5: 2}), Counter({6: 2}))
     """
 
@@ -138,6 +138,49 @@ def remove_pairs(player_hand: Counter, all_pairs: Tuple) -> Tuple[Counter]:
             break
 
     return tuple(pairs)
+
+
+def count_shanten_13_orphans(player_hand: Union[Counter, Iterable]) -> int:
+    """Count the shanten number of player's hand to Thirteen Orphans
+
+    The length of ``players_hand`` must be 13 or 14.
+
+    >>> count_shanten_13_orphans(tiles.tiles('139m19p19s東南西北白発中'))
+    0
+    >>> count_shanten_13_orphans(tiles.tiles('19m19p19s東南南西北白発中'))
+    -1
+
+    >>> count_shanten_13_orphans(tiles.tiles('17m133469p388s北発中')) # 9m19s東南西白
+    7
+    >>> count_shanten_13_orphans(tiles.tiles('17m133469p88s西北発中')) # 9m19s東南白
+    6
+    >>> count_shanten_13_orphans(tiles.tiles('11m133469p88s西北発中')) # 9m19s東南白
+    5
+    >>> count_shanten_13_orphans(tiles.tiles('119m13369p88s西北発中')) # 19s東南白
+    4
+    >>> count_shanten_13_orphans(tiles.tiles('119m1369p188s西北発中'))
+    3
+    >>> count_shanten_13_orphans(tiles.tiles('119m169p1889s西北発中'))
+    2
+    >>> count_shanten_13_orphans(tiles.tiles('119m19p1889s東西北発中'))
+    1
+    >>> count_shanten_13_orphans(tiles.tiles('119m19p189s東南西北発中'))
+    0
+    >>> count_shanten_13_orphans(tiles.tiles('119m19p19s東南西北発中'))
+    0
+    """
+
+    if not isinstance(player_hand, Counter):
+        player_hand = Counter(player_hand)
+
+    if sum(player_hand.values()) not in (13, 14):
+        raise ValueError('player_hand must be concealed')
+
+    num_orphans = len(orphans := player_hand & tiles.THIRTEEN_ORPHANS)
+    if (player_hand - orphans) & orphans:
+        return 12 - num_orphans
+
+    return 13 - num_orphans
 
 
 if __name__ == '__main__':
