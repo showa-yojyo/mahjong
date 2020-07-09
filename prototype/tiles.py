@@ -4,7 +4,7 @@ mahjong.tiles
 """
 
 from collections import Counter
-import itertools
+from itertools import chain, repeat
 import re
 import sys
 from typing import Iterable, List, Tuple, Union
@@ -292,6 +292,20 @@ def get_suit_number(tile_id: int) -> int:
     return TILE_RANGE_SUITS.index(tile_id) % 9 + 1
 
 
+# Filters
+def _create_filter(tile_range):
+    """A helper function."""
+    return Counter(chain.from_iterable(repeat(tile_range, 4)))
+
+FILTER_WINDS = _create_filter(TILE_RANGE_WINDS)
+FILTER_DRAGONS = _create_filter(TILE_RANGE_DRAGONS)
+FILTER_HONORS = FILTER_WINDS + FILTER_DRAGONS
+FILTER_CHARACTERS = _create_filter(TILE_RANGE_CHARACTERS)
+FILTER_CIRCLES = _create_filter(TILE_RANGE_CIRCLES)
+FILTER_BAMBOOS = _create_filter(TILE_RANGE_BAMBOOS)
+#FILTER_TERMINALS = _create_filter(TILE_TERMINALS)
+
+
 _honor_table = {
     '東': TILE_EAST_WIND,
     '南': TILE_SOUTH_WIND,
@@ -363,7 +377,7 @@ def _init_sortkey_map():
     sortkey_map = {}
     key = 1
     # マンピンソー東南西北白発中
-    for code in itertools.chain(
+    for code in chain(
             TILE_RANGE_CHARACTERS, TILE_RANGE_CIRCLES,
             TILE_RANGE_BAMBOOS, TILE_RANGE_WINDS,
             reversed(TILE_RANGE_DRAGONS)):
@@ -478,12 +492,12 @@ def convert_suit_to_number(player_hand: Union[Counter, Iterable]) -> Counter:
     if not source:
         return source
 
-    id = source.most_common(1)[0][0]
-    if id in TILE_RANGE_CHARACTERS:
+    tile_id = source.most_common(1)[0][0]
+    if tile_id in TILE_RANGE_CHARACTERS:
         first = TILE_ONE_OF_CHARACTERS
-    elif id in TILE_RANGE_CIRCLES:
+    elif tile_id in TILE_RANGE_CIRCLES:
         first = TILE_ONE_OF_CIRCLES
-    elif id in TILE_RANGE_BAMBOOS:
+    elif tile_id in TILE_RANGE_BAMBOOS:
         first = TILE_ONE_OF_BAMBOOS
     else:
         raise ValueError
@@ -492,3 +506,34 @@ def convert_suit_to_number(player_hand: Union[Counter, Iterable]) -> Counter:
         return Counter({k - first + 1: source[k] for k in source})
 
     raise ValueError
+
+
+# Melds and pairs
+
+def _generate_all_melds_suit():
+    """Generate 111, 123, 222, 234, 333, 345, ..., 777, 789, 888, 999.
+    """
+
+    for i in range(1, 10):
+        yield Counter({i: 3})
+        if i + 2 <= 9:
+            yield Counter([i, i + 1, i + 2])
+
+
+MELDS_NUMBER = tuple(_generate_all_melds_suit())
+MELDS_HONOR = tuple(Counter({i: 3}) for i in TILE_RANGE_HONORS)
+
+
+def _generate_all_pairs_suit():
+    """TODO: optimize
+    """
+
+    for i in range(1, 10):
+        yield Counter((i, i))
+        if i < 9:
+            yield Counter((i, i + 1))
+        if i < 8:
+            yield Counter((i, i + 2))
+
+PAIRS_NUMBER = tuple(_generate_all_pairs_suit())
+PAIRS_HONOR = tuple(Counter({i: 2}) for i in TILE_RANGE_HONORS)
