@@ -183,5 +183,57 @@ def count_shanten_13_orphans(player_hand: Union[Counter, Iterable]) -> int:
     return 13 - num_orphans
 
 
+def count_shanten_seven_pairs(player_hand: Union[Counter, Iterable]) -> int:
+    """Count the shanten number of player's hand growing to Seven Pairs.
+
+    The length of ``players_hand`` must be 13 or 14.
+
+    Note that Seven Pairs must be of seven different pairs. Two identical pairs
+    are not allowed.
+
+    >>> count_shanten_seven_pairs(tiles.tiles('東東南南西西北北白白発発中中'))
+    -1
+
+    >>> count_shanten_seven_pairs('AABBCCDDEEFFG')
+    0
+    >>> count_shanten_seven_pairs('AABBCCDDEEFGH')
+    1
+
+    A hand with four different pairs is 2-shanten of Seven Pairs:
+
+    >>> count_shanten_seven_pairs('AAABBBCCCDDEF')
+    2
+    >>> count_shanten_seven_pairs('AABBCCDDEFGHI')
+    2
+
+    >>> count_shanten_seven_pairs('AABBCCCCDEFGH')
+    3
+    >>> count_shanten_seven_pairs('ABCDEFabcdef0')
+    6
+    """
+
+    if not isinstance(player_hand, Counter):
+        player_hand = Counter(player_hand)
+
+    if sum(player_hand.values()) not in (13, 14):
+        raise ValueError('player_hand must be concealed')
+
+    npair = sum(1 for v in player_hand.values() if v >= 2)
+    #waiting_tiles = tuple(
+    #    tile for tile in player_hand if player_hand[tile] < 2)
+
+    return 6 - npair#, waiting_tiles
+
+
+def count_shanten_naive(player_hand: Union[Counter, Iterable]) -> int:
+    """Count the shanten number of player's hand.
+    """
+
+    if not isinstance(player_hand, Counter):
+        player_hand = Counter(player_hand)
+
+    return min(f(player_hand) for f in (
+        count_shanten_std, count_shanten_seven_pairs, count_shanten_13_orphans))
+
 if __name__ == '__main__':
-    print(count_shanten_std(tiles.tiles(sys.argv[1])))
+    print(count_shanten_naive(tiles.tiles(sys.argv[1])))

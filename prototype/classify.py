@@ -283,41 +283,6 @@ def resolve_melds_demo(player_hand: Counter):
             eyes = Counter({tile: 2})
             resolve_melds_with_eyes(player_hand - eyes, eyes)
 
-# Features for seven pairs
-
-def resolve_seven_pairs(player_hand):
-    """Resolve all the waiting tiles as Seven Pairs.
-
-    Note that Seven Pairs must be of seven different pairs. Two identical pairs
-    are not allowed.
-
-    >>> resolve_seven_pairs(Counter('AABBCCDDEEFFG'))
-    (0, ('G',))
-    >>> resolve_seven_pairs(Counter('AABBCCDDEEFGH'))
-    (1, ('F', 'G', 'H'))
-
-    A hand with four different pairs is 2-shanten of Seven Pairs:
-
-    >>> resolve_seven_pairs(Counter('AAABBBCCCDDEF'))
-    (2, ('E', 'F'))
-    >>> resolve_seven_pairs(Counter('AABBCCDDEFGHI'))
-    (2, ('E', 'F', 'G', 'H', 'I'))
-
-    >>> resolve_seven_pairs(Counter('AABBCCCCDEFGH'))
-    (3, ('D', 'E', 'F', 'G', 'H'))
-    >>> shanten, tiles = resolve_seven_pairs(Counter('ABCDEFabcdef0'))
-    >>> shanten, len(tiles)
-    (6, 13)
-    """
-
-    assert isinstance(player_hand, Counter)
-
-    npair = sum(1 for v in player_hand.values() if v >= 2)
-    waiting_tiles = tuple(
-        tile for tile in player_hand if player_hand[tile] < 2)
-
-    return 6 - npair, waiting_tiles
-
 
 # resolve_recursively(Counter([1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9]))
 def resolve_recursively(player_hand: Counter, melds_found=None):
