@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
 """
-mahjan.shanten
+mahjong.shanten
 """
 
+from argparse import ArgumentParser, Namespace
 from collections import Counter
+from operator import itemgetter
 import sys
-from typing import Iterable, Tuple, Union
+from typing import Iterable, Sequence, Tuple, Union
 
 import tiles
 
@@ -35,17 +37,26 @@ def count_shanten_std(player_hand: Union[Counter, Iterable]) -> int:
     2
     >>> count_shanten_std(tiles.tiles('566m77p56s'))
     1
+
+    >>> count_shanten_std(tiles.tiles('258m258p258s東南西北'))
+    8
     """
 
     if not isinstance(player_hand, Counter):
         player_hand = Counter(player_hand)
 
     num_tile = sum(player_hand.values())
-    if num_tile % 3 != 1:
-        raise ValueError('the number of tiles muse be 3n + 1.')
+    if num_tile % 3 == 0:
+        raise ValueError('the number of tiles must not be 3n.')
 
     if num_tile == 1:
         # Obvious tempai.
+        return 0
+    if num_tile == 2:
+        if len(player_hand) == 1:
+            # XX
+            return -1
+        # XY
         return 0
 
     part_m = player_hand & tiles.FILTER_CHARACTERS
@@ -65,7 +76,7 @@ def count_shanten_std(player_hand: Union[Counter, Iterable]) -> int:
     melds_h = remove_melds(hand_h, tiles.MELDS_HONOR)
     pairs_h = remove_pairs(hand_h, tiles.PAIRS_HONOR)
 
-    # 13, 10, 7, 4, 1 -> 8, 6, 4, 2, 0
+    # 14, 13, 11, 10, 8, 7, 5, 4 -> 8, 8, 6, 6, 4, 4, 2, 2
     num_shanten = (num_tile - 1) // 3 * 2
     num_shanten -= sum(len(melds) for melds in (
         melds_m, melds_p, melds_s, melds_h)) * 2
@@ -219,10 +230,10 @@ def count_shanten_seven_pairs(player_hand: Union[Counter, Iterable]) -> int:
         raise ValueError('player_hand must be concealed')
 
     npair = sum(1 for v in player_hand.values() if v >= 2)
-    #waiting_tiles = tuple(
+    # waiting_tiles = tuple(
     #    tile for tile in player_hand if player_hand[tile] < 2)
 
-    return 6 - npair#, waiting_tiles
+    return 6 - npair  # , waiting_tiles
 
 
 def count_shanten_naive(player_hand: Union[Counter, Iterable]) -> int:
@@ -232,8 +243,61 @@ def count_shanten_naive(player_hand: Union[Counter, Iterable]) -> int:
     if not isinstance(player_hand, Counter):
         player_hand = Counter(player_hand)
 
-    return min(f(player_hand) for f in (
-        count_shanten_std, count_shanten_seven_pairs, count_shanten_13_orphans))
+    shanten, func = min(((f(player_hand), f) for f in (
+        count_shanten_std,
+        count_shanten_seven_pairs,
+        count_shanten_13_orphans)),
+        key=itemgetter(0))
+
+    return shanten, func
+
+
+def parse_args(args: Sequence[str]) -> Namespace:
+    """Parse the command line parameters."
+
+    Returns:
+        An instance of argparse.ArgumentParser that stores the command line
+        parameters.
+    """
+
+    parser = ArgumentParser()
+    parser.add_argument(
+        'hand',
+        help='player\'s hand')
+    parser.add_argument(
+        '-a', '--algorithm',
+        default=None,
+        help='algorithm')
+
+    return parser.parse_args(args or ['--help'])
+
+
+def run(args):
+    """main entry point"""
+
+    player_hand = tiles.tiles(args.hand)
+
+    func = {'13': count_shanten_13_orphans,
+            '7': count_shanten_seven_pairs,
+            'std': count_shanten_std, }.get(args.algorithm, None)
+
+    if func:
+        shanten = func(player_hand)
+    else:
+        shanten, func = count_shanten_naive(player_hand)
+
+    shanten_type = {
+        count_shanten_13_orphans: 'ThirteenOrphans',
+        count_shanten_seven_pairs: 'SevenPairs',
+        count_shanten_std: 'StandardForm', }[func]
+
+    print(f'{shanten} {shanten_type}')
+
+
+def main(args=sys.argv[1:]):
+    """main entry point"""
+    sys.exit(run(parse_args(args)))
+
 
 if __name__ == '__main__':
-    print(count_shanten_naive(tiles.tiles(sys.argv[1])))
+    main()
