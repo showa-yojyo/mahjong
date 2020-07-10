@@ -305,6 +305,10 @@ FILTER_CIRCLES = _create_filter(TILE_RANGE_CIRCLES)
 FILTER_BAMBOOS = _create_filter(TILE_RANGE_BAMBOOS)
 #FILTER_TERMINALS = _create_filter(TILE_TERMINALS)
 
+_suit_baseid_table = {
+    'm': TILE_ONE_OF_CHARACTERS,
+    'p': TILE_ONE_OF_CIRCLES,
+    's': TILE_ONE_OF_BAMBOOS,}
 
 _honor_table = {
     '東': TILE_EAST_WIND,
@@ -332,23 +336,14 @@ def tiles(pattern: str) -> Union[int, Tuple]:
     """
 
     result = []
+    regex = r'([1-9]+[mps])|([東南西北白発中]+)'
 
-    re_m = r'([0-9]+)m'
-    re_p = r'([0-9]+)p'
-    re_s = r'([0-9]+)s'
-    re_honors = r'[東南西北白発中]'
-
-    def _tiles_suit(regex, baseid):
-        if matched := re.search(regex, pattern):
-            return [baseid + int(i) - 1 for i in matched[1]]
-        return ()
-
-    result.extend(_tiles_suit(re_m, TILE_ONE_OF_CHARACTERS))
-    result.extend(_tiles_suit(re_p, TILE_ONE_OF_CIRCLES))
-    result.extend(_tiles_suit(re_s, TILE_ONE_OF_BAMBOOS))
-
-    for group in re.findall(re_honors, pattern):
-        result.extend(_honor_table[honor] for honor in group)
+    for suits, honors in re.findall(regex, pattern):
+        if suits:
+            result.extend(_suit_baseid_table[suits[-1]] + int(i) - 1
+                          for i in suits[:-1])
+        else:
+            result.extend(_honor_table[honor] for honor in honors)
 
     if len(result) <= 1:
         if not result:
