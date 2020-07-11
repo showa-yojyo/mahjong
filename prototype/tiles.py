@@ -4,6 +4,7 @@ mahjong.tiles
 """
 
 from collections import Counter
+from enum import Enum
 from itertools import chain, repeat
 import re
 import sys
@@ -290,6 +291,41 @@ def get_suit_number(tile_id: int) -> int:
         raise ValueError(f'{tile_id} must be a Suit tile')
 
     return TILE_RANGE_SUITS.index(tile_id) % 9 + 1
+
+
+class TileClass(Enum):
+    """A simple classification of tiles."""
+
+    CHARACTER = '萬子'
+    CIRCLE = '筒子'
+    BAMBOO = '索子'
+    HONOR = '字牌'
+
+
+def get_tile_class(tile_id: int) -> TileClass:
+    """Return the tile class of a tile.
+
+    >>> get_tile_class(TILE_NINE_OF_CHARACTERS) == TileClass.CHARACTER
+    True
+    >>> get_tile_class(TILE_NINE_OF_CIRCLES) == TileClass.CIRCLE
+    True
+    >>> get_tile_class(TILE_NINE_OF_BAMBOOS) == TileClass.BAMBOO
+    True
+    >>> get_tile_class(TILE_WHITE_DRAGON) == TileClass.HONOR
+    True
+    """
+
+    mapping = {
+        is_character: TileClass.CHARACTER,
+        is_circle: TileClass.CIRCLE,
+        is_bamboo: TileClass.BAMBOO,
+        is_honor: TileClass.HONOR,}
+
+    for pred, tile_class in mapping.items():
+        if pred(tile_id):
+            return tile_class
+
+    raise ValueError
 
 
 # Filters

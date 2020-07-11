@@ -80,7 +80,7 @@ def resolve_waiting_4(tiles):
     bag = Counter(tiles)
 
     if (ntype := len(bag)) == 1:
-        # Not a kong but a Pong and a single
+        # Not a kong but a Pung and a single
         return (1, _resolve_isolated_number(tiles[0], False))
 
     if ntype == 2:
@@ -88,7 +88,7 @@ def resolve_waiting_4(tiles):
         if set(bag.values()) == {3, 1}:
             return resolve_waiting_aaab(tiles, bag)
 
-        # A double-Pong waiting
+        # A double-Pung waiting
         return (0, set(bag.keys()))
 
     if ntype == 3:
@@ -137,7 +137,7 @@ def resolve_waiting_aaab(tiles, bag=None):
         bag = Counter(tiles)
 
     _, second = bag.most_common(2)
-    # case 1: A single wait and a Pong
+    # case 1: A single wait and a Pung
     waiting_tiles = {second[0]}
 
     # case 2: Two pairs?

@@ -71,8 +71,8 @@ class TileTupleType(Enum):
     PONG = '刻子'
     KONG = '槓子'
 
-class Pong:
-    """A Pong."""
+class Pung:
+    """A Pung."""
 
     __slots__ = ('tile',)
 
@@ -80,15 +80,15 @@ class Pong:
         self.tile = tile
 
     def __repr__(self):
-        return f'Pong({self.tile})'
+        return f'Pung({self.tile})'
 
     def as_counter(self):
         """
-        >>> pong1 = Pong(1)
-        >>> pong1.as_counter()
+        >>> pung1 = Pung(1)
+        >>> pung1.as_counter()
         Counter({1: 3})
         """
-        return _all_pongs[self.tile - 1]
+        return _all_pungs[self.tile - 1]
 
 
 class Chow:
@@ -111,7 +111,7 @@ class Chow:
         return _all_chows[self.first - 1]
 
 
-_all_pongs = tuple(Counter((i, i, i,)) for i in range(1, 10))
+_all_pungs = tuple(Counter((i, i, i,)) for i in range(1, 10))
 _all_chows = tuple(Counter((i, i + 1, i + 2,)) for i in range(1, 8))
 _all_chows_d = tuple(Counter({i: 2, i + 1: 2, i + 2: 2}) for i in range(1, 8))
 _all_chows_t = tuple(Counter({i: 3, i + 1: 3, i + 2: 3}) for i in range(1, 8))
@@ -205,14 +205,14 @@ def get_meld_type(meld: Union[Sequence[int], Counter]) -> TileTupleType:
     return TileTupleType.NONE
 
 
-def get_possible_pongs(tile_counter):
-    """Return all the possible pongs in tiles
+def get_possible_pungs(tile_counter):
+    """Return all the possible pungs in tiles
 
-    >>> get_possible_pongs(Counter([3,3,3,3,4,4,4,4,5,5,5,5,6]))
-    [Pong(3), Pong(4), Pong(5)]
+    >>> get_possible_pungs(Counter([3,3,3,3,4,4,4,4,5,5,5,5,6]))
+    [Pung(3), Pung(4), Pung(5)]
     """
 
-    return [Pong(*p.keys()) for p in _all_pongs if tile_counter & p == p]
+    return [Pung(*p.keys()) for p in _all_pungs if tile_counter & p == p]
 
 
 def get_possible_chows(tile_counter):
@@ -240,7 +240,7 @@ def resolve_melds_single_wait(player_hand):
     """WIP"""
 
     possible_melds = set(combinations(chain(
-        get_possible_pongs(player_hand),
+        get_possible_pungs(player_hand),
         get_possible_chows(player_hand)), sum(player_hand.values()) // 3))
     for melds in possible_melds:
         counter_melds = Counter()
@@ -258,7 +258,7 @@ def resolve_melds_with_eyes(player_hand, eyes):
     """WIP"""
 
     possible_melds = set(combinations(chain(
-        get_possible_pongs(player_hand),
+        get_possible_pungs(player_hand),
         get_possible_chows(player_hand)), sum(player_hand.values()) // 3))
     for melds in possible_melds:
         counter_melds = Counter()
