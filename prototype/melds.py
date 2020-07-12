@@ -12,8 +12,13 @@ from typing import Tuple
 import tiles
 
 def is_pair_eyes(pair: Counter) -> bool:
-    """Test if a pair is Eyes"""
-    return len(pair.most_common()) == 1
+    """Test if a pair is eyes
+
+    >>> is_pair_eyes(Counter({8: 2}))
+    True
+    """
+
+    return len(pair) == 1 and sum(pair.values()) == 2
 
 
 def remove_melds(player_hand: Counter, all_melds: Tuple) -> Tuple[Counter]:
