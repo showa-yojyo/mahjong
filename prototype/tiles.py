@@ -341,6 +341,16 @@ FILTER_CIRCLES = _create_filter(TILE_RANGE_CIRCLES)
 FILTER_BAMBOOS = _create_filter(TILE_RANGE_BAMBOOS)
 #FILTER_TERMINALS = _create_filter(TILE_TERMINALS)
 
+_mapping_class_filter = {
+    TileClass.CHARACTER: FILTER_CHARACTERS,
+    TileClass.CIRCLE: FILTER_CIRCLES,
+    TileClass.BAMBOO: FILTER_BAMBOOS,
+    TileClass.HONOR: FILTER_HONORS,}
+
+def get_filter(tile_class: TileClass):
+    """Return the filter from a tile class"""
+    return _mapping_class_filter[tile_class]
+
 _suit_baseid_table = {
     'm': TILE_ONE_OF_CHARACTERS,
     'p': TILE_ONE_OF_CIRCLES,
