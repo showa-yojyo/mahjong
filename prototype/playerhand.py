@@ -91,3 +91,21 @@ class PlayerHand:
             return number + 2 in numbers
 
         return False
+
+
+    def can_claim_pung(self, discarded_tile: int):
+        """Test if the player can claim for a Pung.
+
+        >>> PlayerHand('149m66s発発').can_claim_pung(tiles.tiles('発'))
+        True
+        >>> PlayerHand('9m66s発発発').can_claim_pung(tiles.tiles('発'))
+        True
+
+        >>> PlayerHand('149m66s白発中').can_claim_pung(tiles.tiles('発'))
+        False
+        >>> [PlayerHand('1112345678999m').can_claim_pung(
+        ...  tiles.tiles(f'{i}m')) for i in range(1, 10)]
+        [True, False, False, False, False, False, False, False, True]
+        """
+
+        return self.concealed_parts.get(discarded_tile, 0) >= 2
