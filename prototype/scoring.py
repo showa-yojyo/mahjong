@@ -7,31 +7,6 @@ from melds import is_pair_eyes, remove_melds, remove_pairs
 import tiles
 from winds import Winds
 
-class PlayerHand:
-    """Player's hand."""
-
-    def __init__(self, concealed, exposed):
-        self._concealed = concealed
-        self._exposed = exposed
-
-    @property
-    def is_concealed(self) -> bool:
-        """Determine if all the tile is concealed."""
-        return not self._exposed
-
-    @property
-    def concealed_parts(self):
-        """Return concealed tiles."""
-        return self._concealed
-
-    @property
-    def exposed_parts(self):
-        """Return exposed melds."""
-        return self._exposed
-
-
-# 22m67s 5s (234s) (456m) (567p)
-
 
 def _compute_minipoints_meld(tile: int, concealed: bool, value: int) -> int:
     """A helper function"""
