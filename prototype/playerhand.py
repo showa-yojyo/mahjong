@@ -109,3 +109,18 @@ class PlayerHand:
         """
 
         return self.concealed_parts.get(discarded_tile, 0) >= 2
+
+
+    def can_claim_kong(self, target_tile: int):
+        """Test if the player can claim for a Kong (melded or concealed).
+
+        >>> PlayerHand('149m66s発発').can_claim_kong(tiles.tiles('発'))
+        False
+        >>> PlayerHand('9m66s発発発').can_claim_kong(tiles.tiles('発'))
+        True
+        """
+
+        return self.concealed_parts.get(target_tile, 0) >= 3
+
+
+    # TODO: 加槓
