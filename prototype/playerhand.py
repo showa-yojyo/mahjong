@@ -41,7 +41,7 @@ class PlayerHand:
         return self._exposed
 
 
-    def can_claim_chow(self, discarded_tile: int) -> bool:
+    def can_claim_chow(self, discarded_tile: tiles.Tile) -> bool:
         """Test if the player can claim for a Chow
 
         >>> [PlayerHand('12m').can_claim_chow(
@@ -93,7 +93,7 @@ class PlayerHand:
         return False
 
 
-    def can_claim_pung(self, discarded_tile: int):
+    def can_claim_pung(self, discarded_tile: tiles.Tile):
         """Test if the player can claim for a Pung.
 
         >>> PlayerHand('149m66s発発').can_claim_pung(tiles.tiles('発'))
@@ -111,7 +111,7 @@ class PlayerHand:
         return self.concealed_parts.get(discarded_tile, 0) >= 2
 
 
-    def can_claim_kong(self, target_tile: int):
+    def can_claim_kong(self, target_tile: tiles.Tile):
         """Test if the player can claim for a Kong (melded or concealed).
 
         >>> PlayerHand('149m66s発発').can_claim_kong(tiles.tiles('発'))

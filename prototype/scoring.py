@@ -8,7 +8,7 @@ import tiles
 from winds import Winds
 
 
-def _compute_minipoints_meld(tile: int, concealed: bool, value: int) -> int:
+def _compute_minipoints_meld(tile: tiles.Tile, concealed: bool, value: int) -> int:
     """A helper function"""
 
     if not tiles.is_simple(tile):
@@ -19,7 +19,7 @@ def _compute_minipoints_meld(tile: int, concealed: bool, value: int) -> int:
     return value
 
 
-def compute_minipoints_pung(tile: int, concealed: bool) -> int:
+def compute_minipoints_pung(tile: tiles.Tile, concealed: bool) -> int:
     """Compute the value of minipoint (fu) of a Chow.
 
     >>> compute_minipoints_pung(tiles.tiles('2m'), False)
@@ -35,7 +35,7 @@ def compute_minipoints_pung(tile: int, concealed: bool) -> int:
     return _compute_minipoints_meld(tile, concealed, 2)
 
 
-def compute_minipoints_kong(tile: int, concealed: bool) -> int:
+def compute_minipoints_kong(tile: tiles.Tile, concealed: bool) -> int:
     """Compute the value of minipoint (fu) of a Kong.
 
     >>> compute_minipoints_kong(tiles.tiles('2m'), False)
@@ -52,7 +52,7 @@ def compute_minipoints_kong(tile: int, concealed: bool) -> int:
 
 
 def compute_minipoints_eyes(
-        tile: int, seat_wind: Winds, prevalent_wind: Winds) -> int:
+        tile: tiles.Tile, seat_wind: Winds, prevalent_wind: Winds) -> int:
     """Compute the value of minipoints (fu) of the Eyes.
 
     >>> compute_minipoints_eyes(tiles.tiles('1m'), Winds.EAST, Winds.EAST)
@@ -96,7 +96,7 @@ def compute_minipoints_eyes(
 
 
 def compute_minipoints_winning(
-        concealed_part: Counter, winning_tile: int) -> int:
+        concealed_part: Counter, winning_tile: tiles.Tile) -> int:
     """Compute the value of minipoints (fu) on winning.
 
     Winning on an edge, closed or pair wait is worth 2 minipoints.
@@ -151,7 +151,7 @@ def compute_minipoints_winning(
     return 0
 
 
-def is_edge_wait(player_hand: Counter, winning_tile: int) -> bool:
+def is_edge_wait(player_hand: Counter, winning_tile: tiles.Tile) -> bool:
     """Determine if an edge wait holds.
 
     >>> is_edge_wait(Counter([8, 9]), 7)
@@ -191,7 +191,7 @@ def is_edge_wait(player_hand: Counter, winning_tile: int) -> bool:
     return _is_pair_wait_common(player_hand, terminal_serial_pair)
 
 
-def is_closed_wait(player_hand: Counter, winning_tile: int) -> bool:
+def is_closed_wait(player_hand: Counter, winning_tile: tiles.Tile) -> bool:
     """Test if a closed wait holds.
 
     >>> is_closed_wait(Counter([7, 9]), 8)
@@ -224,7 +224,7 @@ def is_closed_wait(player_hand: Counter, winning_tile: int) -> bool:
     return _is_pair_wait_common(player_hand, closed_pair, meld)
 
 
-def is_single_wait(player_hand: Counter, winning_tile: int) -> bool:
+def is_single_wait(player_hand: Counter, winning_tile: tiles.Tile) -> bool:
     """Test if a single wait holds.
 
     ノベタン（順子＋単騎）
