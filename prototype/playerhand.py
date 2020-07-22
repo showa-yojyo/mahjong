@@ -7,8 +7,9 @@ from enum import Enum
 
 import tiles
 
+
 class DiscardedBy(Enum):
-    """Position of the player that discarded the tile"""
+    """Positions of the player that discarded the tile claimed"""
 
     LEFT = '上家'
     CENTER = '対面'
@@ -34,6 +35,7 @@ class Chow(Meld):
     def minipoints(self):
         """Return the value of minipoints (fu)"""
         return 0
+
 
 class Pung(Meld):
     """Pung"""
@@ -73,6 +75,11 @@ class PlayerHand:
             self._concealed = Counter(concealed)
         self._exposed = exposed or []
 
+        self.claimable_chow = {}
+        self.claimable_pung = {}
+        self.claimable_kong = {}
+        self.claimable_win = {}
+
     @property
     def is_concealed(self) -> bool:
         """Determine if all the tile is concealed."""
@@ -92,7 +99,6 @@ class PlayerHand:
     def exposed_parts(self):
         """Return exposed melds."""
         return self._exposed
-
 
     def can_claim_chow(self, discarded_tile: tiles.Tile) -> bool:
         """Test if the player can claim for a Chow
@@ -143,7 +149,6 @@ class PlayerHand:
 
         return False
 
-
     def can_claim_pung(self, discarded_tile: tiles.Tile):
         """Test if the player can claim for a Pung.
 
@@ -161,7 +166,6 @@ class PlayerHand:
 
         return self.concealed_parts.get(discarded_tile, 0) >= 2
 
-
     def can_claim_kong(self, target_tile: tiles.Tile):
         """Test if the player can claim for a Kong (melded or concealed).
 
@@ -172,10 +176,6 @@ class PlayerHand:
         """
 
         return self.concealed_parts.get(target_tile, 0) >= 3
-
-
-    # TODO: 加槓
-
 
     def commit_chow(
             self,
@@ -206,7 +206,6 @@ class PlayerHand:
         self.exposed_parts.append(Chow([new_tile, tile1, tile2], False))
         self.concealed_parts.subtract([tile1, tile2])
 
-
     def commit_pung(self, tile: tiles.Tile, discarded_by: DiscardedBy):
         """Add a Pung to the exposed part.
 
@@ -226,3 +225,73 @@ class PlayerHand:
 
         self.exposed_parts.append(Pung(tile, False, discarded_by))
         self.concealed_parts.subtract({tile: 2})
+
+    def update_claimable_tiles(self):
+        """WIP"""
+        self.update_claimable_tiles_chow()
+        self.update_claimable_tiles_pung()
+        self.update_claimable_tiles_kong()
+
+    def update_claimable_tiles_chow(self):
+        """Update information for claiming a Chow.
+
+        >>> player_hand = PlayerHand('26m334568p38s東発発')
+        >>> player_hand.update_claimable_tiles_chow()
+        >>> set(tiles.tiles('234567p')) == player_hand.claimable_chow
+        True
+        """
+
+        def _find_mate_pairs(suits, part):
+            def _get_mate_pair(tile):
+                yield (tile - 2, tile - 1)
+                yield (tile - 1, tile + 1)
+                yield (tile + 1, tile + 2)
+
+            # XXX: 以下のループをなぜか comprehension で書けない？
+            for tile in suits:
+                if any(mate[0] in part and mate[1] in part
+                       for mate in _get_mate_pair(tile)):
+                    claimable_chow.add(tile)
+
+        claimable_chow = set()
+        _find_mate_pairs(tiles.TILE_RANGE_CHARACTERS,
+                         self.concealed_parts & tiles.FILTER_CHARACTERS)
+        _find_mate_pairs(tiles.TILE_RANGE_CIRCLES,
+                         self.concealed_parts & tiles.FILTER_CIRCLES)
+        _find_mate_pairs(tiles.TILE_RANGE_BAMBOOS,
+                         self.concealed_parts & tiles.FILTER_BAMBOOS)
+
+        self.claimable_chow = claimable_chow
+
+    def update_claimable_tiles_pung(self):
+        """Update information for claiming a Pung.
+
+        >>> player_hand = PlayerHand('26m334568p38s東発発')
+        >>> player_hand.update_claimable_tiles_pung()
+        >>> set(tiles.tiles('3p発')) == player_hand.claimable_pung
+        True
+        """
+
+        counter = self.concealed_parts
+        self.claimable_pung = set(
+            tile for tile in counter if counter[tile] == 2)
+
+    def update_claimable_tiles_kong(self):
+        """Update information for claiming a Kong.
+
+        >>> player_hand = PlayerHand('26m333368p38s発発発')
+        >>> player_hand.update_claimable_tiles_kong()
+        >>> set(tiles.tiles('3p発')) == player_hand.claimable_kong
+        True
+        """
+
+        counter = self.concealed_parts
+
+        # 大明槓 or 暗槓
+        self.claimable_kong = set(
+            tile for tile in counter if counter[tile] in (3, 4))
+
+        # 加槓
+        self.claimable_kong.union(
+            meld.tileinfo for meld in self.exposed_parts
+            if isinstance(meld, Pung))
