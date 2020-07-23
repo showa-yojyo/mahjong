@@ -65,7 +65,7 @@ class Kong(Pung):
 class PlayerHand:
     """Player's hand."""
 
-    def __init__(self, concealed, exposed=None):
+    def __init__(self, concealed, exposed=None, initial_update=True):
         if isinstance(concealed, str):
             concealed = tiles.tiles(concealed)
 
@@ -79,6 +79,8 @@ class PlayerHand:
         self.claimable_pung = {}
         self.claimable_kong = {}
         self.claimable_win = {}
+        if initial_update:
+            self.update_claimable_tiles()
 
     @property
     def is_concealed(self) -> bool:
@@ -128,33 +130,23 @@ class PlayerHand:
         True
         """
 
-        if len(self.concealed_parts) == 1:
-            return False
-
-        tile_class = tiles.get_tile_class(discarded_tile)
-        if tile_class == tiles.TileClass.HONOR:
-            return False
-
-        target_tiles = self.get_concealed_part_by_class(tile_class)
-
-        numm1 = discarded_tile - 1 in target_tiles
-        nump1 = discarded_tile + 1 in target_tiles
-        if not numm1 and not nump1:
-            return False
-
-        if numm1:
-            return discarded_tile - 2 in target_tiles or nump1
-        if nump1:
-            return discarded_tile + 2 in target_tiles
-
-        return False
+        return discarded_tile in self.claimable_chow
 
     def can_claim_pung(self, discarded_tile: tiles.Tile):
         """Test if the player can claim for a Pung.
 
-        >>> PlayerHand('149m66s発発').can_claim_pung(tiles.tiles('発'))
+        >>> hand = PlayerHand('149m66s発発')
+        >>> hand.can_claim_pung(tiles.tiles('1s'))
+        False
+        >>> hand.can_claim_pung(tiles.tiles('6s'))
         True
-        >>> PlayerHand('9m66s発発発').can_claim_pung(tiles.tiles('発'))
+        >>> hand.can_claim_pung(tiles.tiles('発'))
+        True
+
+        >>> hand = PlayerHand('9m66s発発発')
+        >>> hand.can_claim_pung(tiles.tiles('6s'))
+        True
+        >>> hand.can_claim_pung(tiles.tiles('発'))
         True
 
         >>> PlayerHand('149m66s白発中').can_claim_pung(tiles.tiles('発'))
@@ -164,7 +156,7 @@ class PlayerHand:
         [True, False, False, False, False, False, False, False, True]
         """
 
-        return self.concealed_parts.get(discarded_tile, 0) >= 2
+        return discarded_tile in self.claimable_pung
 
     def can_claim_kong(self, target_tile: tiles.Tile):
         """Test if the player can claim for a Kong (melded or concealed).
@@ -175,7 +167,7 @@ class PlayerHand:
         True
         """
 
-        return self.concealed_parts.get(target_tile, 0) >= 3
+        return target_tile in self.claimable_kong
 
     def commit_chow(
             self,
@@ -205,6 +197,7 @@ class PlayerHand:
 
         self.exposed_parts.append(Chow([new_tile, tile1, tile2], False))
         self.concealed_parts.subtract([tile1, tile2])
+        self.update_claimable_tiles()
 
     def commit_pung(self, tile: tiles.Tile, discarded_by: DiscardedBy):
         """Add a Pung to the exposed part.
@@ -225,6 +218,7 @@ class PlayerHand:
 
         self.exposed_parts.append(Pung(tile, False, discarded_by))
         self.concealed_parts.subtract({tile: 2})
+        self.update_claimable_tiles()
 
     def update_claimable_tiles(self):
         """WIP"""
@@ -274,7 +268,7 @@ class PlayerHand:
 
         counter = self.concealed_parts
         self.claimable_pung = set(
-            tile for tile in counter if counter[tile] == 2)
+            tile for tile in counter if counter[tile] >= 2)
 
     def update_claimable_tiles_kong(self):
         """Update information for claiming a Kong.
