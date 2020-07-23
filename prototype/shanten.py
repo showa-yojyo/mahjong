@@ -6,12 +6,20 @@ mahjong.shanten
 
 from argparse import ArgumentParser, Namespace
 from collections import Counter
+from enum import Enum
 from operator import itemgetter
 import sys
 from typing import Iterable, Sequence, Union
 
 from melds import remove_melds, remove_pairs
 import tiles
+
+class ShantenType(Enum):
+    """Types of player's hand"""
+
+    STANDARD = '四面子一雀頭'
+    THIRTEEN_ORPHANS = '国士無双'
+    SEVEN_PAIRS = '七対子'
 
 
 def count_shanten_std(player_hand: Union[Counter, Iterable]) -> int:
@@ -223,9 +231,9 @@ def run(args):
         shanten, func = count_shanten_naive(player_hand)
 
     shanten_type = {
-        count_shanten_13_orphans: 'ThirteenOrphans',
-        count_shanten_seven_pairs: 'SevenPairs',
-        count_shanten_std: 'StandardForm', }[func]
+        count_shanten_13_orphans: ShantenType.THIRTEEN_ORPHANS,
+        count_shanten_seven_pairs: ShantenType.SEVEN_PAIRS,
+        count_shanten_std: ShantenType.STANDARD }[func]
 
     print(f'{shanten} {shanten_type}')
 

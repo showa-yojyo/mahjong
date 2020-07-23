@@ -5,6 +5,10 @@ mahjong.playerhand
 from collections import Counter
 from enum import Enum
 
+from shanten import (
+    count_shanten_13_orphans,
+    count_shanten_seven_pairs,
+    count_shanten_std)
 import tiles
 
 
@@ -79,41 +83,53 @@ class PlayerHand:
         self.claimable_pung = {}
         self.claimable_kong = {}
         self.claimable_win = {}
+
+        self.shanten_std, self.shanten_7, self.shanten_13 = None, None, None
         if initial_update:
             self.update_claimable_tiles()
+            self.update_shanten()
 
     @property
     def is_concealed(self) -> bool:
         """Determine if all the tile is concealed."""
-        return not self._exposed
+        #return not self._exposed
+        return sum(self.concealed_part.values()) == 13
 
     @property
-    def concealed_parts(self):
+    def concealed_part(self):
         """Return concealed tiles."""
         return self._concealed
 
     def get_concealed_part_by_class(self, tile_class) -> Counter:
         """Return the part that consists of specific tiles"""
 
-        return self.concealed_parts & tiles.get_filter(tile_class)
+        return self.concealed_part & tiles.get_filter(tile_class)
 
     @property
     def exposed_parts(self):
         """Return exposed melds."""
         return self._exposed
 
+    @property
+    def shanten(self):
+        """Return the shanten number"""
+        if not self.is_concealed:
+            return self.shanten_std
+
+        return min(self.shanten_std, self.shanten_7, self.shanten_13)
+
     def can_claim_chow(self, discarded_tile: tiles.Tile) -> bool:
         """Test if the player can claim for a Chow
 
-        >>> [PlayerHand('12m').can_claim_chow(
+        >>> [PlayerHand('12m東南').can_claim_chow(
         ...  tiles.tiles('3{}'.format(i))) for i in 'mps']
         [True, False, False]
 
-        >>> [PlayerHand('89m').can_claim_chow(
+        >>> [PlayerHand('89m東南').can_claim_chow(
         ...  tiles.tiles('7{}'.format(i))) for i in 'mps']
         [True, False, False]
 
-        >>> [PlayerHand('35p').can_claim_chow(
+        >>> [PlayerHand('35p東南').can_claim_chow(
         ...  tiles.tiles('4{}'.format(i))) for i in 'mps']
         [False, True, False]
 
@@ -121,7 +137,7 @@ class PlayerHand:
         ...  tiles.tiles('{}m'.format(i))) for i in range(1, 10)]
         [False, False, True, True, True, True, True, True, False]
 
-        >>> any(PlayerHand('258p').can_claim_chow(
+        >>> any(PlayerHand('258p西').can_claim_chow(
         ...     tiles.tiles('{}p'.format(i))) for i in range(1, 10))
         False
 
@@ -143,13 +159,13 @@ class PlayerHand:
         >>> hand.can_claim_pung(tiles.tiles('発'))
         True
 
-        >>> hand = PlayerHand('9m66s発発発')
+        >>> hand = PlayerHand('9m66s2p発発発')
         >>> hand.can_claim_pung(tiles.tiles('6s'))
         True
         >>> hand.can_claim_pung(tiles.tiles('発'))
         True
 
-        >>> PlayerHand('149m66s白発中').can_claim_pung(tiles.tiles('発'))
+        >>> PlayerHand('149m6s白発中').can_claim_pung(tiles.tiles('発'))
         False
         >>> [PlayerHand('1112345678999m').can_claim_pung(
         ...  tiles.tiles(f'{i}m')) for i in range(1, 10)]
@@ -163,7 +179,7 @@ class PlayerHand:
 
         >>> PlayerHand('149m66s発発').can_claim_kong(tiles.tiles('発'))
         False
-        >>> PlayerHand('9m66s発発発').can_claim_kong(tiles.tiles('発'))
+        >>> PlayerHand('9m66s2p発発発').can_claim_kong(tiles.tiles('発'))
         True
         """
 
@@ -187,16 +203,16 @@ class PlayerHand:
         False
         >>> print(chow.discarded_by)
         DiscardedBy.LEFT
-        >>> player_hand.concealed_parts[tile1]
+        >>> player_hand.concealed_part[tile1]
         1
-        >>> player_hand.concealed_parts[target_tile]
+        >>> player_hand.concealed_part[target_tile]
         1
-        >>> player_hand.concealed_parts[tile2]
+        >>> player_hand.concealed_part[tile2]
         0
         """
 
         self.exposed_parts.append(Chow([new_tile, tile1, tile2], False))
-        self.concealed_parts.subtract([tile1, tile2])
+        self.concealed_part.subtract([tile1, tile2])
         self.update_claimable_tiles()
 
     def commit_pung(self, tile: tiles.Tile, discarded_by: DiscardedBy):
@@ -212,12 +228,12 @@ class PlayerHand:
         False
         >>> print(pung.discarded_by)
         DiscardedBy.CENTER
-        >>> player_hand.concealed_parts[target_tile]
+        >>> player_hand.concealed_part[target_tile]
         0
         """
 
         self.exposed_parts.append(Pung(tile, False, discarded_by))
-        self.concealed_parts.subtract({tile: 2})
+        self.concealed_part.subtract({tile: 2})
         self.update_claimable_tiles()
 
     def update_claimable_tiles(self):
@@ -249,11 +265,11 @@ class PlayerHand:
 
         claimable_chow = set()
         _find_mate_pairs(tiles.TILE_RANGE_CHARACTERS,
-                         self.concealed_parts & tiles.FILTER_CHARACTERS)
+                         self.concealed_part & tiles.FILTER_CHARACTERS)
         _find_mate_pairs(tiles.TILE_RANGE_CIRCLES,
-                         self.concealed_parts & tiles.FILTER_CIRCLES)
+                         self.concealed_part & tiles.FILTER_CIRCLES)
         _find_mate_pairs(tiles.TILE_RANGE_BAMBOOS,
-                         self.concealed_parts & tiles.FILTER_BAMBOOS)
+                         self.concealed_part & tiles.FILTER_BAMBOOS)
 
         self.claimable_chow = claimable_chow
 
@@ -266,7 +282,7 @@ class PlayerHand:
         True
         """
 
-        counter = self.concealed_parts
+        counter = self.concealed_part
         self.claimable_pung = set(
             tile for tile in counter if counter[tile] >= 2)
 
@@ -279,7 +295,7 @@ class PlayerHand:
         True
         """
 
-        counter = self.concealed_parts
+        counter = self.concealed_part
 
         # 大明槓 or 暗槓
         self.claimable_kong = set(
@@ -289,3 +305,15 @@ class PlayerHand:
         self.claimable_kong.union(
             meld.tileinfo for meld in self.exposed_parts
             if isinstance(meld, Pung))
+
+    def update_shanten(self):
+        """Update the shanten number"""
+
+        player_hand = self.concealed_part
+        self.shanten_std = count_shanten_std(player_hand)
+        if self.is_concealed:
+            self.shanten_7 = count_shanten_seven_pairs(player_hand)
+            self.shanten_13 = count_shanten_13_orphans(player_hand)
+        else:
+            self.shanten_7 = None
+            self.shanten_13 = None
