@@ -59,6 +59,10 @@ class Pung(Meld):
             value <<= 1
         return value
 
+    def extend_to_kong(self):
+        """加槓"""
+        return Kong(self.tileinfo, False, self.discarded_by)
+
 
 class Kong(Pung):
     """Kong"""
@@ -235,6 +239,64 @@ class PlayerHand:
         self.exposed_parts.append(Pung(tile, False, discarded_by))
         self.concealed_part.subtract({tile: 2})
         self.update_claimable_tiles()
+
+    def commit_kong(self, tile: tiles.Tile, discarded_by: DiscardedBy):
+        """Add/extend a Kong.
+
+        Determine if the claiming for this Kong is a melded, concealed or
+        extension Kong by this hand and ``discarded_by``.
+
+        Example 1: 大明槓
+
+        >>> hand = PlayerHand(tiles.tiles('479m378p568s東東東白'))
+        >>> hand.commit_kong(tiles.tiles('東'), DiscardedBy.CENTER)
+        >>> hand.concealed_part - Counter(tiles.tiles('479m378p568s白'))
+        Counter()
+        >>> kong = hand.exposed_parts[-1]
+        >>> print(kong.discarded_by)
+        DiscardedBy.CENTER
+
+        Example 2: 暗槓
+
+        >>> hand = PlayerHand(tiles.tiles('479m378p568s東東東東'))
+        >>> hand.commit_kong(tiles.tiles('東'), None)
+        >>> hand.concealed_part - Counter(tiles.tiles('479m378p568s'))
+        Counter()
+        >>> kong = hand.exposed_parts[-1]
+        >>> print(kong.discarded_by)
+        None
+
+        Example 3: 加槓
+
+        >>> hand = PlayerHand(tiles.tiles('479m378p568s白'),
+        ...                   [Pung(tiles.tiles('東'), True, DiscardedBy.RIGHT)])
+        >>> hand.commit_kong(tiles.tiles('東'), None)
+        >>> kong = hand.exposed_parts[-1]
+        >>> isinstance(kong, Kong)
+        True
+        >>> kong.tileinfo == tiles.tiles('東')
+        True
+        >>> print(kong.discarded_by)
+        DiscardedBy.RIGHT
+        """
+
+        if discarded_by:
+            # A melded Kong
+            self.exposed_parts.append(Kong(tile, False, discarded_by))
+            self.concealed_part.subtract({tile: 3})
+        elif self.concealed_part.get(tile, 0) == 4:
+            # A concealed Kong
+            self.exposed_parts.append(Kong(tile, True, None))
+            self.concealed_part.subtract({tile: 4})
+        else:
+            # A melded Pung is extended to a melded Kong
+            for i, meld in enumerate(self.exposed_parts):
+                if meld.tileinfo == tile:
+                    self._exposed[i] = meld.extend_to_kong()
+                    break
+
+        self.update_claimable_tiles()
+
 
     def update_claimable_tiles(self):
         """WIP"""
