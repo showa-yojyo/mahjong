@@ -567,18 +567,24 @@ MELDS_NUMBER = tuple(_generate_all_melds_suit())
 MELDS_HONOR = tuple(Counter({i: 3}) for i in TILE_RANGE_HONORS)
 
 
-def _generate_all_pairs_suit():
+def _generate_all_pairs_suit(base=1):
     """TODO: optimize
     """
 
-    for i in range(1, 10):
-        yield Counter((i, i))
-        if i < 9:
-            yield Counter((i, i + 1))
-        if i < 8:
-            yield Counter((i, i + 2))
+    for i in range(base, base + 9):
+        yield (i, i)
+        if i < base + 8:
+            yield (i, i + 1)
+        if i < base + 7:
+            yield (i, i + 2)
 
-PAIRS_NUMBER = tuple(_generate_all_pairs_suit())
+PAIRS_NUMBER = tuple(Counter(i) for i in _generate_all_pairs_suit(1))
+PAIRS_CHARACTER = tuple(_generate_all_pairs_suit(TILE_ONE_OF_CHARACTERS))
+PAIRS_CIRCLE = tuple(_generate_all_pairs_suit(TILE_ONE_OF_CIRCLES))
+PAIRS_BAMBOO = tuple(_generate_all_pairs_suit(TILE_ONE_OF_BAMBOOS))
+PAIRS_SUIT = chain(
+    PAIRS_CHARACTER, PAIRS_CIRCLE, PAIRS_BAMBOO)
+
 PAIRS_HONOR = tuple(Counter({i: 2}) for i in TILE_RANGE_HONORS)
 
 THIRTEEN_ORPHANS = Counter(chain(TILE_TERMINALS, TILE_RANGE_HONORS))

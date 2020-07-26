@@ -188,10 +188,10 @@ def count_shanten_naive(player_hand: Union[Counter, Iterable]) -> int:
         player_hand = Counter(player_hand)
 
     shanten, func = min(((f(player_hand), f) for f in (
-        count_shanten_std,
-        count_shanten_seven_pairs,
-        count_shanten_13_orphans)),
-        key=itemgetter(0))
+                        count_shanten_std,
+                        count_shanten_seven_pairs,
+                        count_shanten_13_orphans)),
+                        key=itemgetter(0))
 
     return shanten, func
 
@@ -233,7 +233,7 @@ def run(args):
     shanten_type = {
         count_shanten_13_orphans: ShantenType.THIRTEEN_ORPHANS,
         count_shanten_seven_pairs: ShantenType.SEVEN_PAIRS,
-        count_shanten_std: ShantenType.STANDARD }[func]
+        count_shanten_std: ShantenType.STANDARD}[func]
 
     print(f'{shanten} {shanten_type}')
 

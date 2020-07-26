@@ -7,9 +7,69 @@ tiles all of the same suit, in numerical sequence)>(Mahjong - Wikipedia)
 """
 
 from collections import Counter
+from enum import Enum
 from typing import Tuple
 
 import tiles
+
+class DiscardedBy(Enum):
+    """Positions of the player that discarded the tile claimed"""
+
+    LEFT = '上家'
+    CENTER = '対面'
+    RIGHT = '下家'
+
+
+class Meld:
+    """Base class"""
+
+    def __init__(self, tileinfo, concealed: bool, discarded_by: DiscardedBy):
+        self.tileinfo = tileinfo
+        self.concealed = concealed
+        self.discarded_by = discarded_by
+
+
+class Chow(Meld):
+    """Chow"""
+
+    def __init__(self, tileinfo, concealed: bool):
+        super().__init__(tileinfo, concealed, DiscardedBy.LEFT)
+
+    @property
+    def minipoints(self):
+        """Return the value of minipoints (fu)"""
+        return 0
+
+
+class Pung(Meld):
+    """Pung"""
+
+    _minipoints_base = 2
+
+    def __str__(self):
+        return f'{self.__class__.__name__}'\
+            + f'({self.tileinfo}, {self.concealed}, {self.discarded_by})'
+
+    @property
+    def minipoints(self):
+        """Return the value of minipoints (fu)"""
+        value = self._minipoints_base
+        if self.concealed:
+            value <<= 1
+        if not tiles.is_simple(self.tileinfo):
+            value <<= 1
+        return value
+
+    def extend_to_kong(self):
+        """加槓"""
+        return Kong(self.tileinfo, False, self.discarded_by)
+
+
+class Kong(Pung):
+    """Kong"""
+
+    _minipoints_base = 8
+
 
 def is_pair_eyes(pair: Counter) -> bool:
     """Test if a pair is eyes

@@ -1,73 +1,18 @@
+#!/usr/bin/env python
+
 """
 mahjong.playerhand
 """
 
 from collections import Counter
-from enum import Enum
 
+from melds import (DiscardedBy, Chow, Pung, Kong)
 from shanten import (
     count_shanten_13_orphans,
     count_shanten_seven_pairs,
     count_shanten_std)
 import tiles
-
-
-class DiscardedBy(Enum):
-    """Positions of the player that discarded the tile claimed"""
-
-    LEFT = '上家'
-    CENTER = '対面'
-    RIGHT = '下家'
-
-
-class Meld:
-    """Base class"""
-
-    def __init__(self, tileinfo, concealed: bool, discarded_by: DiscardedBy):
-        self.tileinfo = tileinfo
-        self.concealed = concealed
-        self.discarded_by = discarded_by
-
-
-class Chow(Meld):
-    """Chow"""
-
-    def __init__(self, tileinfo, concealed: bool):
-        super().__init__(tileinfo, concealed, DiscardedBy.LEFT)
-
-    @property
-    def minipoints(self):
-        """Return the value of minipoints (fu)"""
-        return 0
-
-
-class Pung(Meld):
-    """Pung"""
-
-    _minipoints_base = 2
-
-    def __str__(self):
-        return f'{self.__class__.__name__}({self.tileinfo}, {self.concealed}, {self.discarded_by})'
-
-    @property
-    def minipoints(self):
-        """Return the value of minipoints (fu)"""
-        value = self._minipoints_base
-        if self.concealed:
-            value <<= 1
-        if not tiles.is_simple(self.tileinfo):
-            value <<= 1
-        return value
-
-    def extend_to_kong(self):
-        """加槓"""
-        return Kong(self.tileinfo, False, self.discarded_by)
-
-
-class Kong(Pung):
-    """Kong"""
-
-    _minipoints_base = 8
+from walls import TileWallAgent
 
 
 class PlayerHand:
@@ -90,13 +35,12 @@ class PlayerHand:
 
         self.shanten_std, self.shanten_7, self.shanten_13 = None, None, None
         if initial_update:
-            self.update_claimable_tiles()
-            self.update_shanten()
+            self.update()
 
     @property
     def is_concealed(self) -> bool:
         """Determine if all the tile is concealed."""
-        #return not self._exposed
+        # return not self._exposed
         return sum(self.concealed_part.values()) == 13
 
     @property
@@ -217,7 +161,7 @@ class PlayerHand:
 
         self.exposed_parts.append(Chow([new_tile, tile1, tile2], False))
         self.concealed_part.subtract([tile1, tile2])
-        self.update_claimable_tiles()
+        # self.update()
 
     def commit_pung(self, tile: tiles.Tile, discarded_by: DiscardedBy):
         """Add a Pung to the exposed part.
@@ -238,7 +182,7 @@ class PlayerHand:
 
         self.exposed_parts.append(Pung(tile, False, discarded_by))
         self.concealed_part.subtract({tile: 2})
-        self.update_claimable_tiles()
+        # self.update()
 
     def commit_kong(self, tile: tiles.Tile, discarded_by: DiscardedBy):
         """Add/extend a Kong.
@@ -295,8 +239,13 @@ class PlayerHand:
                     self._exposed[i] = meld.extend_to_kong()
                     break
 
-        self.update_claimable_tiles()
+        # Note: リンシャンから補充するまで self.update_shanten() を呼べない
+        # self.update()
 
+    def update(self):
+        """Update internal state"""
+        self.update_claimable_tiles()
+        self.update_shanten()
 
     def update_claimable_tiles(self):
         """WIP"""
@@ -379,3 +328,16 @@ class PlayerHand:
         else:
             self.shanten_7 = None
             self.shanten_13 = None
+
+
+def main():
+    """test"""
+
+    wall_agent = TileWallAgent()
+    player_hands = wall_agent.build()
+    east_player = PlayerHand(Counter(player_hands[0]))
+
+    print(east_player)
+
+if __name__ == '__main__':
+    main()
