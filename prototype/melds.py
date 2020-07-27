@@ -28,12 +28,16 @@ class Meld:
         self.concealed = concealed
         self.discarded_by = discarded_by
 
+    def __str__(self):
+        return f'{self.__class__.__name__}({self.tileinfo}, {self.concealed}, {self.discarded_by})'
+
 
 class Chow(Meld):
     """Chow"""
 
     def __init__(self, tileinfo, concealed: bool):
         super().__init__(tileinfo, concealed, DiscardedBy.LEFT)
+
 
     @property
     def minipoints(self):
@@ -45,10 +49,6 @@ class Pung(Meld):
     """Pung"""
 
     _minipoints_base = 2
-
-    def __str__(self):
-        return f'{self.__class__.__name__}'\
-            + f'({self.tileinfo}, {self.concealed}, {self.discarded_by})'
 
     @property
     def minipoints(self):

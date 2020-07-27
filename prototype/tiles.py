@@ -588,3 +588,45 @@ PAIRS_SUIT = chain(
 PAIRS_HONOR = tuple(Counter({i: 2}) for i in TILE_RANGE_HONORS)
 
 THIRTEEN_ORPHANS = Counter(chain(TILE_TERMINALS, TILE_RANGE_HONORS))
+
+TRANS_TABLE = str.maketrans({
+    0x1F000: '東',
+    0x1F001: '南',
+    0x1F002: '西',
+    0x1F003: '北',
+    0x1F004: '中',
+    0x1F005: '発',
+    0x1F006: '白',
+    0x1F007: '1m',
+    0x1F008: '2m',
+    0x1F009: '3m',
+    0x1F00A: '4m',
+    0x1F00B: '5m',
+    0x1F00C: '6m',
+    0x1F00D: '7m',
+    0x1F00E: '8m',
+    0x1F00F: '9m',
+    0x1F010: '1p',
+    0x1F011: '2p',
+    0x1F012: '3p',
+    0x1F013: '4p',
+    0x1F014: '5p',
+    0x1F015: '6p',
+    0x1F016: '7p',
+    0x1F017: '8p',
+    0x1F018: '9p',
+    0x1F019: '1s',
+    0x1F01A: '2s',
+    0x1F01B: '3s',
+    0x1F01C: '4s',
+    0x1F01D: '5s',
+    0x1F01E: '6s',
+    0x1F01F: '7s',
+    0x1F020: '8s',
+    0x1F021: '9s',})
+
+def format_tiles(*iterable):
+    """Format tiles"""
+
+    sorted_tiles = sorted(*iterable, key=lambda t: SORTKEY_MAP[t])
+    return ''.join(chr(c) for c in sorted_tiles).translate(TRANS_TABLE)

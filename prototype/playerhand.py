@@ -37,6 +37,16 @@ class PlayerHand:
         if initial_update:
             self.update()
 
+
+    def __str__(self):
+        # concealed part
+        concealed_part = tiles.format_tiles(self.concealed_part.elements())
+
+        # exposed part
+        exposed_part = ' '.join(str(meld) for meld in self.exposed_parts)
+        return f'{concealed_part} {exposed_part} {self.shanten} シャンテン'
+
+
     @property
     def is_concealed(self) -> bool:
         """Determine if all the tile is concealed."""
@@ -334,10 +344,9 @@ def main():
     """test"""
 
     wall_agent = TileWallAgent()
-    player_hands = wall_agent.build()
-    east_player = PlayerHand(Counter(player_hands[0]))
-
-    print(east_player)
+    player_hands = [PlayerHand(Counter(ph)) for ph in wall_agent.build()]
+    for player_hand in player_hands:
+        print(player_hand)
 
 if __name__ == '__main__':
     main()
