@@ -2,10 +2,10 @@
 Module mahjong.winds
 """
 
-from enum import Enum
+from enum import IntEnum
 from typing import Tuple
 
-class Winds(Enum):
+class Winds(IntEnum):
     """Enumeration for winds
     """
 
