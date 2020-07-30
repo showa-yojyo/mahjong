@@ -2,6 +2,8 @@
 mahjong.player
 """
 
+from winds import Winds
+
 class Player:
     """A Mahjong player
 
@@ -16,12 +18,13 @@ class Player:
         self.seat_wind = None
         self.hand = None
 
+
     def __str__(self):
         contents = []
-        if self.seat_wind:
+        if isinstance(self.seat_wind, Winds):
             contents.append(f'{self.seat_wind!s}家')
         contents.append(f'{self.name}')
         contents.append(f'{self.points: 6,d} 点')
         if self.hand:
-            contents.append(f'手牌 {self.hand:s}')
+            contents.append(f'手牌 {self.hand!s}')
         return ' '.join(contents)
